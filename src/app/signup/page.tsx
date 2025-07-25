@@ -100,12 +100,12 @@ export default function SignupPage() {
             </Form>
           </CardContent>
           <CardFooter className="flex justify-center text-sm">
-            <p>
+            <div className="text-center">
               Already have an account?{' '}
               <Link href="/" className="underline text-primary">
                 Sign in
               </Link>
-            </p>
+            </div>
           </CardFooter>
         </Card>
         <Card className="mt-6 bg-secondary/50">
