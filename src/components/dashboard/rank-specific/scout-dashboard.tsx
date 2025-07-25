@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Binoculars, MapTrifold, Compass } from "lucide-react";
+import { Binoculars, Map, Compass } from "lucide-react";
 import type { User } from "@/lib/types";
 import Image from "next/image";
 
@@ -33,7 +33,7 @@ export function ScoutDashboard({ user }: { user: User }) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Territories Charted</CardTitle>
-            <MapTrifold className="h-4 w-4 text-muted-foreground" />
+            <Map className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12</div>
