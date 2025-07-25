@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -14,6 +15,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { VALID_INVITE_CODES } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
+import { ClientOnly } from '@/components/ui/client-only';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -99,14 +101,16 @@ export default function SignupPage() {
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex justify-center text-sm">
-            <p className="text-center">
-              Already have an account?{' '}
-              <Link href="/" className="underline text-primary">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
+          <ClientOnly>
+            <CardFooter className="flex justify-center text-sm">
+                <p className="text-center">
+                  Already have an account?{' '}
+                  <Link href="/" className="underline text-primary">
+                    Sign in
+                  </Link>
+                </p>
+            </CardFooter>
+          </ClientOnly>
         </Card>
         <Card className="mt-6 bg-secondary/50">
           <CardHeader>
