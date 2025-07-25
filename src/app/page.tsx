@@ -92,11 +92,13 @@ export default function LoginPage() {
           <CardHeader>
             <CardTitle className="text-sm">Demo Accounts</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground space-y-1">
-            <p>errante@elmiclan.com</p>
-            <p>scout@elmiclan.com</p>
-            <p>conquistador@elmiclan.com</p>
-            <p>admin@elmiclan.com</p>
+          <CardContent>
+            <div className="text-xs text-muted-foreground space-y-1">
+                <p>errante@elmiclan.com</p>
+                <p>scout@elmiclan.com</p>
+                <p>conquistador@elmiclan.com</p>
+                <p>admin@elmiclan.com</p>
+            </div>
           </CardContent>
         </Card>
       </div>

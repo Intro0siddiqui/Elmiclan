@@ -112,8 +112,10 @@ export default function SignupPage() {
           <CardHeader>
             <CardTitle className="text-sm">Valid Invite Codes</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground space-y-1">
-            {VALID_INVITE_CODES.map(code => <p key={code}>{code}</p>)}
+          <CardContent>
+            <div className="text-xs text-muted-foreground space-y-1">
+                {VALID_INVITE_CODES.map(code => <p key={code}>{code}</p>)}
+            </div>
           </CardContent>
         </Card>
       </div>
