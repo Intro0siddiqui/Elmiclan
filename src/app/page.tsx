@@ -79,13 +79,13 @@ export default function LoginPage() {
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex-col items-center">
-             <div className="text-center text-sm">
-                Don&apos;t have an account?{' '}
-                <Link href="/signup" className="underline text-primary">
-                  Sign up with an invite code
-                </Link>
-              </div>
+          <CardFooter className="flex justify-center text-sm">
+            <p>
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" className="underline text-primary">
+                Sign up with an invite code
+              </Link>
+            </p>
           </CardFooter>
         </Card>
         <Card className="mt-6 bg-secondary/50">

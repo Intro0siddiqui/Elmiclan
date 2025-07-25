@@ -99,13 +99,13 @@ export default function SignupPage() {
               </form>
             </Form>
           </CardContent>
-          <CardFooter>
-            <div className="text-center text-sm w-full">
+          <CardFooter className="flex justify-center text-sm">
+            <p>
               Already have an account?{' '}
               <Link href="/" className="underline text-primary">
                 Sign in
               </Link>
-            </div>
+            </p>
           </CardFooter>
         </Card>
         <Card className="mt-6 bg-secondary/50">
