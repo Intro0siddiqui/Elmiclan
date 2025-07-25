@@ -12,14 +12,19 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Logo } from '@/components/icons';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { VALID_INVITE_CODES } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
+  inviteCode: z.string().min(1, { message: 'Invite code is required.' })
+    .refine(code => VALID_INVITE_CODES.includes(code.toUpperCase()), {
+      message: 'Invalid invite code.',
+    }),
 });
 
-export default function LoginPage() {
-  const { login } = useAuth();
+export default function SignupPage() {
+  const { signup } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,17 +32,19 @@ export default function LoginPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: '',
+      inviteCode: '',
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await login(values.email);
+      // New users start as 'Errante'
+      await signup(values.email, 'Errante');
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Login Failed',
+        title: 'Sign Up Failed',
         description: error instanceof Error ? error.message : 'An unknown error occurred.',
       });
       setIsLoading(false);
@@ -52,8 +59,8 @@ export default function LoginPage() {
             <Logo className="h-8 w-8 text-primary" />
             <h1 className="text-2xl font-bold tracking-tighter">ElmiClan Portal</h1>
           </div>
-          <CardTitle>Welcome Back</CardTitle>
-          <CardDescription>Enter your email to access the portal.</CardDescription>
+          <CardTitle>Create an Account</CardTitle>
+          <CardDescription>An invite code is required to join the clan.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -65,7 +72,20 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="member@elmiclan.com" {...field} />
+                      <Input placeholder="new.member@elmiclan.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="inviteCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Invite Code</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your invite code" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -73,25 +93,22 @@ export default function LoginPage() {
               />
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                Sign Up
               </Button>
             </form>
           </Form>
           <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="underline text-primary">
-              Sign up with an invite code
+            Already have an account?{' '}
+            <Link href="/" className="underline text-primary">
+              Sign in
             </Link>
           </div>
-           <Card className="mt-6 bg-secondary/50">
+          <Card className="mt-6 bg-secondary/50">
             <CardHeader>
-              <CardTitle className="text-sm">Demo Accounts</CardTitle>
+              <CardTitle className="text-sm">Valid Invite Codes</CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground space-y-1">
-              <p>errante@elmiclan.com</p>
-              <p>scout@elmiclan.com</p>
-              <p>conquistador@elmiclan.com</p>
-              <p>admin@elmiclan.com</p>
+              {VALID_INVITE_CODES.map(code => <p key={code}>{code}</p>)}
             </CardContent>
           </Card>
         </CardContent>
