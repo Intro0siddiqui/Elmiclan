@@ -81,10 +81,10 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex justify-center text-sm">
             <p className="text-center">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="underline text-primary">
-                Sign up with an invite code
-              </Link>
+                <span>Don&apos;t have an account? </span>
+                <Link href="/signup" className="underline text-primary">
+                    Sign up with an invite code
+                </Link>
             </p>
           </CardFooter>
         </Card>
