@@ -21,7 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage, SendSecureMessageInput } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft } from 'lucide-react';
 import { AnimatedPage } from '@/components/AnimatedPage';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank } from '@/lib/types';
@@ -175,7 +175,7 @@ const MOCK_CONVERSATIONS = [
   }
 ];
 
-function ConversationList({ onNewChat }: { onNewChat: () => void }) {
+function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () => void; onSelectConversation: (partnerId: string) => void }) {
     // In a real app, you would use useQuery to fetch this data
   const conversations = MOCK_CONVERSATIONS;
 
@@ -196,7 +196,7 @@ function ConversationList({ onNewChat }: { onNewChat: () => void }) {
       </CardHeader>
       <CardContent className="space-y-2">
         {conversations.map((convo) => (
-            <div key={convo.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary cursor-pointer transition-colors">
+            <div key={convo.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary cursor-pointer transition-colors" onClick={() => onSelectConversation(convo.partnerMatrixId)}>
                 <Avatar className="h-12 w-12 border-2 border-primary">
                     <AvatarImage src={convo.avatar} alt={convo.partnerName} data-ai-hint={convo.dataAiHint} />
                     <AvatarFallback>{convo.partnerName.charAt(0)}</AvatarFallback>
@@ -220,10 +220,12 @@ function PartnerFinder({
   currentUserRank,
   currentUserEmail,
   onSelectPartner,
+  onBack,
 }: {
   currentUserRank: Rank;
   currentUserEmail: string;
   onSelectPartner: (matrixId: string) => void;
+  onBack: () => void;
 }) {
   const potentialPartners = Object.entries(MOCK_USERS)
     .map(([email, user]) => ({ email, ...user }))
@@ -239,6 +241,9 @@ function PartnerFinder({
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
+           <Button variant="ghost" size="icon" className="mr-2 h-8 w-8" onClick={onBack}>
+                <ArrowLeft />
+           </Button>
           <Users className="h-5 w-5" />
           <CardTitle>Find a Partner</CardTitle>
         </div>
@@ -279,6 +284,101 @@ function PartnerFinder({
   );
 }
 
+function DirectMessageForm({ onBack, onMessageSent }: { onBack: () => void; onMessageSent: () => void; }) {
+  const { user } = useAuth();
+  const form = useFormContext<z.infer<typeof messageFormSchema>>();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  async function handleSendMessage(values: z.infer<typeof messageFormSchema>) {
+    setLoading(true);
+    setError(null);
+
+    const input: SendSecureMessageInput = {
+      message: values.message,
+      toUserId: values.toUserId,
+      rankRestricted: false,
+    };
+
+    try {
+      const response = await sendSecureMessage(input);
+      if (response.success) {
+        form.reset({
+          message: '',
+          toUserId: values.toUserId,
+          rankRestricted: false,
+        });
+        await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
+        onMessageSent(); // Go back to conversation list on success
+      } else {
+        throw new Error(response.error || 'Failed to send message.');
+      }
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }
+    
+    return (
+        <Card>
+            <CardHeader>
+                 <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="mr-2 h-8 w-8" onClick={onBack}>
+                            <ArrowLeft />
+                    </Button>
+                    <CardTitle>Send Direct Message</CardTitle>
+                </div>
+                <CardDescription>Your message will be end-to-end encrypted.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
+                        <FormField
+                        control={form.control}
+                        name="toUserId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Recipient Matrix ID</FormLabel>
+                                <FormControl>
+                                    <Input {...field} readOnly placeholder="Select a partner to fill this"/>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="message"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Your Message</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="Type your direct message..." {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    {error && (
+                        <Alert variant="destructive" className="mt-4">
+                            <AlertTitle>Action Failed</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
+                    <Button type="submit" className="w-full" disabled={loading}>
+                        {loading ? <Loader2 className="animate-spin" /> : <Send />}
+                        <span>{loading ? 'Sending...' : 'Send Direct Message'}</span>
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
+    );
+}
+
+type DmView = 'list' | 'new' | 'chat';
+
 export default function MessengerPage() {
   const { user } = useAuth();
   const params = useParams();
@@ -287,7 +387,8 @@ export default function MessengerPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showPartnerFinder, setShowPartnerFinder] = useState(false);
+  const [dmView, setDmView] = useState<DmView>('list');
+
   const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof messageFormSchema>>({
@@ -297,38 +398,39 @@ export default function MessengerPage() {
 
   const handleSelectPartner = (matrixId: string) => {
     form.setValue('toUserId', matrixId);
-    setShowPartnerFinder(false); // Hide finder and show the form
+    setDmView('chat');
   };
 
-  async function handleSendMessage(values: z.infer<typeof messageFormSchema>) {
-    if (mode === 'dm' && !values.toUserId) {
-      form.setError('toUserId', { type: 'manual', message: 'Recipient Matrix ID is required for Direct Messages.' });
-      return;
-    }
+  const handleNewChat = () => {
+    setDmView('new');
+  };
 
+  const handleBackToList = () => {
+    form.reset({ toUserId: '', message: '', rankRestricted: false });
+    setDmView('list');
+  };
+
+  async function handleSendClanMessage(values: z.infer<typeof messageFormSchema>) {
     setLoading(true);
     setError(null);
     setResult(null);
 
     const input: SendSecureMessageInput = {
       message: values.message,
-      toUserId: mode === 'dm' ? values.toUserId : undefined,
-      rankRestricted: mode === 'clan' ? values.rankRestricted : false,
+      toUserId: undefined,
+      rankRestricted: values.rankRestricted,
     };
 
     try {
       const response = await sendSecureMessage(input);
       if (response.success) {
-        const successMessage = mode === 'dm' ? `Message sent successfully!` : `Message sent successfully to the clan chat!`;
-        setResult({ success: true, message: successMessage });
+        setResult({ success: true, message: `Message sent successfully to the clan chat!` });
         form.reset({
           message: '',
-          toUserId: mode === 'dm' ? values.toUserId : '',
+          toUserId: '',
           rankRestricted: false,
         });
-        if (mode === 'clan') {
-          await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
-        }
+        await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
       } else {
         throw new Error(response.error || 'Failed to send message.');
       }
@@ -343,60 +445,19 @@ export default function MessengerPage() {
   if (!user) return null;
 
   const renderDmContent = () => {
-    return (
-        <div className="grid md:grid-cols-2 gap-6 items-start">
-            <div className="space-y-6">
-                <ConversationList onNewChat={() => setShowPartnerFinder(!showPartnerFinder)} />
-                {form.getValues('toUserId') && !showPartnerFinder && (
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Send Direct Message</CardTitle>
-                            <CardDescription>Your message will be end-to-end encrypted.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Form {...form}>
-                                <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
-                                     <FormField
-                                        control={form.control}
-                                        name="toUserId"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Recipient Matrix ID</FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} readOnly placeholder="Select a partner to fill this"/>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="message"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Your Message</FormLabel>
-                                                <FormControl>
-                                                    <Textarea placeholder="Type your direct message..." {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <Button type="submit" className="w-full" disabled={loading}>
-                                        {loading ? <Loader2 className="animate-spin" /> : <Send />}
-                                        <span>{loading ? 'Sending...' : 'Send Direct Message'}</span>
-                                    </Button>
-                                </form>
-                            </Form>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
-            {showPartnerFinder && (
-                <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} />
-            )}
-        </div>
-    );
+    switch (dmView) {
+        case 'new':
+            return <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} onBack={handleBackToList} />;
+        case 'chat':
+            return (
+                <Form {...form}>
+                    <DirectMessageForm onBack={handleBackToList} onMessageSent={handleBackToList} />
+                </Form>
+            );
+        case 'list':
+        default:
+            return <ConversationList onNewChat={handleNewChat} onSelectConversation={handleSelectPartner}/>;
+    }
   };
 
   return (
@@ -410,7 +471,7 @@ export default function MessengerPage() {
             </CardHeader>
             <CardContent>
                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(handleSendClanMessage)} className="space-y-4">
                         <FormField
                         control={form.control}
                         name="message"
@@ -484,3 +545,5 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
+
+    
