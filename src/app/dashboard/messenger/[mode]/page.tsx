@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, use } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -208,8 +208,7 @@ function ClanMessageForm({ userRank }: { userRank: Rank }) {
 // #region Direct Message Components
 
 function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () => void; onSelectConversation: (partnerId: string) => void }) {
-  // Mock data has been removed as requested.
-  const conversations = [];
+  const conversations: any[] = []; // No mock data
 
   return (
     <Card>
