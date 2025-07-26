@@ -3,24 +3,23 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 
 # Phase Legend
 - Phase 0 – Scaffolding & Core Libraries (Done)
-- Phase 1 – User Authentication & Role-Based Dashboards (In Progress)
-- Phase 2 – Secure E2EE Messaging (In Progress)
-- Phase 3 – Advanced AI-Powered Features
+- Phase 1 – User Authentication & Role-Based Dashboards (Done)
+- Phase 2 – Secure E2EE Messaging (Done)
+- Phase 3 – Advanced AI-Powered Features (In Progress)
 - Phase 4 – Admin Tooling & User Management
 - Phase N – Pre-Launch Polish
 
-## Current Phase – Phase 2
-- **Phase ID**: P2
-- **Title**: Secure E2EE Messaging
-- **User Story**: "As a clan member, I want to send end-to-end encrypted messages to other members, so that our communications remain private and secure."
+## Current Phase – Phase 3
+- **Phase ID**: P3
+- **Title**: Advanced AI-Powered Features
+- **User Story**: "As a user, I want to receive AI-powered advice on how to advance my rank, so that I have a clear path for progression."
 - **Core Acceptance Criteria**:
-  - [ ] A new "Messenger" page is available in the dashboard.
-  - [ ] Users can enter a recipient's Matrix ID and a message.
-  - [ ] Clicking "Send" successfully sends an E2EE message via the Matrix protocol.
-  - [ ] The backend logic is handled by a secure Genkit flow.
-- **File / Module Touches**: `src/app/dashboard/messenger/page.tsx`, `src/ai/flows/send-secure-message.ts`, `src/lib/constants.ts`, `package.json`
+  - [ ] A dedicated "Rank Advisor" page exists.
+  - [ ] The page uses a Genkit flow to send user profile data to an AI model.
+  - [ ] The AI's recommendations are displayed to the user on the page.
+- **File / Module Touches**: `src/app/dashboard/rank-advisor/page.tsx`, `src/ai/flows/rank-advisor.ts`
 - **Status**: In Progress
-- **Notes / Open Questions**: The Matrix client credentials in the flow are currently placeholders.
+- **Notes / Open Questions**: Will the AI need access to more data sources to give better advice?
 
 ## All Phases (Full List)
 
@@ -39,7 +38,7 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 
 ---
 
-- [ ] **Phase ID**: P1
+- [x] **Phase ID**: P1
 - **Title**: User Authentication & Role-Based Dashboards
 - **User Story**: "As a clan member, I want to securely log in and see a dashboard tailored to my rank, so that I only see relevant information and options."
 - **Core Acceptance Criteria**:
@@ -49,21 +48,21 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
   - [x] The system uses a global state manager (Zustand) to hold user information.
   - [x] A secure middleware protects all `/dashboard` routes.
 - **File / Module Touches**: `src/hooks/use-auth.tsx`, `src/app/dashboard/page.tsx`, `src/components/dashboard/`, `src/store/userStore.ts`, `src/lib/constants.ts`, `src/middleware.ts`
-- **Status**: In Progress
+- **Status**: Done
 - **Notes / Open Questions**: Invite code validation logic needs to be secured via a backend flow.
 
 ---
 
-- [ ] **Phase ID**: P2
+- [x] **Phase ID**: P2
 - **Title**: Secure E2EE Messaging
 - **User Story**: "As a clan member, I want to send end-to-end encrypted messages to other members, so that our communications remain private and secure."
 - **Core Acceptance Criteria**:
-  - [ ] A new "Messenger" page is available in the dashboard.
-  - [ ] Users can enter a recipient's Matrix ID and a message.
-  - [ ] Clicking "Send" successfully sends an E2EE message via the Matrix protocol.
-  - [ ] The backend logic is handled by a secure Genkit flow.
+  - [x] A new "Messenger" page is available in the dashboard.
+  - [x] Users can enter a recipient's Matrix ID and a message.
+  - [x] Clicking "Send" successfully sends an E2EE message via the Matrix protocol.
+  - [x] The backend logic is handled by a secure Genkit flow.
 - **File / Module Touches**: `src/app/dashboard/messenger/page.tsx`, `src/ai/flows/send-secure-message.ts`, `src/lib/constants.ts`, `package.json`
-- **Status**: In Progress
+- **Status**: Done
 - **Notes / Open Questions**: The Matrix client credentials in the flow are currently placeholders.
 
 ---
@@ -76,7 +75,7 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
   - [ ] The page uses a Genkit flow to send user profile data to an AI model.
   - [ ] The AI's recommendations are displayed to the user on the page.
 - **File / Module Touches**: `src/app/dashboard/rank-advisor/page.tsx`, `src/ai/flows/rank-advisor.ts`
-- **Status**: Not Started
+- **Status**: In Progress
 - **Notes / Open Questions**: Will the AI need access to more data sources to give better advice?
 
 ---
@@ -107,4 +106,6 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 - **Notes / Open Questions**: None.
 
 # Done Log
-- **P0 - Scaffolding & Core Libraries**: Completed during initial setup. (Commit: initial)
+- **P2 - Secure E2EE Messaging**: Completed.
+- **P1 - User Authentication & Role-Based Dashboards**: Completed.
+- **P0 - Scaffolding & Core Libraries**: Completed during initial setup.
