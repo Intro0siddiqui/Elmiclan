@@ -45,13 +45,12 @@ function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
         queryFn: ({ pageParam }) => fetchMessages({ from: pageParam as string | undefined, requestingUserRank: currentUserRank }),
         getNextPageParam: lastPage => lastPage.nextFrom,
         initialPageParam: undefined,
-        refetchInterval: 5000, // Refetch every 5 seconds
+        refetchInterval: 5000,
     });
 
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Scroll to bottom on initial load and when new messages are added
     if (scrollViewportRef.current) {
         scrollViewportRef.current.scrollTop = scrollViewportRef.current.scrollHeight;
     }
@@ -206,11 +205,11 @@ function ClanMessageForm({ userRank }: { userRank: Rank }) {
 }
 // #endregion
 
-// #region Direct Message Components
+// #region Direct Message Components - REWRITTEN FOR RESPONSIVENESS
 const MOCK_CONVERSATIONS = [
   { id: 'convo-1', partnerName: 'Sam Scout', partnerMatrixId: '@scout:matrix.org', lastMessage: 'Hey, I found something interesting near the Crystal Caves. Let me know when you are online because I might need some help with it.', timestamp: '2h ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' },
   { id: 'convo-2', partnerName: 'Ada Admin', partnerMatrixId: '@admin:matrix.org', lastMessage: 'Your last report was very detailed. Good work. Keep it up and you might be next in line for a promotion.', timestamp: '1d ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' },
-  { id: 'convo-3', partnerName: 'Chris Conq', partnerMatrixId: '@conquistador:matrix.org', lastMessage: 'We need to plan the next campaign. Are you available for a strategy session tomorrow?', timestamp: '3d ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' }
+  { id: 'convo-3', partnerName: 'Chris Conquistador The Great And Powerful', partnerMatrixId: '@conquistador:matrix.org', lastMessage: 'We need to plan the next campaign. Are you available for a strategy session tomorrow?', timestamp: '3d ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' }
 ];
 
 function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () => void; onSelectConversation: (partnerId: string) => void }) {
@@ -229,22 +228,22 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
         </div>
         <CardDescription>Your recent direct message history.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-1">
+      <CardContent className="space-y-1 p-2">
         {MOCK_CONVERSATIONS.map((convo) => (
             <div 
               key={convo.id} 
               className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer transition-colors" 
               onClick={() => onSelectConversation(convo.partnerMatrixId)}
             >
-                <Avatar className="h-12 w-12 border-2 border-primary shrink-0">
+                <Avatar className="h-12 w-12 border-2 border-primary flex-shrink-0">
                     <AvatarImage src={convo.avatar} alt={convo.partnerName} data-ai-hint={convo.dataAiHint} />
                     <AvatarFallback>{convo.partnerName.charAt(0)}</AvatarFallback>
                 </Avatar>
-                {/* This is the key fix: min-w-0 allows the flex item to shrink and the text to truncate */}
-                <div className="flex-grow min-w-0">
+                
+                <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center">
                         <p className="font-semibold truncate">{convo.partnerName}</p>
-                        <p className="text-xs text-muted-foreground shrink-0 ml-2">{convo.timestamp}</p>
+                        <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{convo.timestamp}</p>
                     </div>
                     <p className="text-sm text-muted-foreground truncate">{convo.lastMessage}</p>
                 </div>
