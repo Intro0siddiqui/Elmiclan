@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -469,83 +469,83 @@ export default function MessengerPage() {
     <AnimatedPage>
       <div className="w-full space-y-6">
        {mode === 'clan' && (
-        <Card>
-            <CardHeader>
-                <CardTitle>Clan Chat</CardTitle>
-                <CardDescription>Communicate with all clan members in the main chat room.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <Form {...clanForm}>
-                    <form onSubmit={clanForm.handleSubmit(handleSendClanMessage)} className="space-y-4">
-                        <FormField
-                        control={clanForm.control}
-                        name="message"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Your Message</FormLabel>
-                            <FormControl>
-                                <Textarea
-                                placeholder='Type your message to the clan here...'
-                                {...field}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                        {user.rank !== 'Errante' && (
-                        <FormField
-                            control={clanForm.control}
-                            name="rankRestricted"
-                            render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                <FormControl>
-                                <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                <FormLabel>
-                                    Visible to my rank and above only
-                                </FormLabel>
-                                <FormDescription>
-                                    If checked, this message will be hidden from members with a lower rank than you.
-                                </FormDescription>
-                                </div>
-                            </FormItem>
-                            )}
-                        />
-                        )}
-                        <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? <Loader2 className="animate-spin" /> : <Send />}
-                        <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+        <>
+          <Card>
+              <CardHeader>
+                  <CardTitle>Clan Chat</CardTitle>
+                  <CardDescription>Communicate with all clan members in the main chat room.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Form {...clanForm}>
+                      <form onSubmit={clanForm.handleSubmit(handleSendClanMessage)} className="space-y-4">
+                          <FormField
+                          control={clanForm.control}
+                          name="message"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Your Message</FormLabel>
+                              <FormControl>
+                                  <Textarea
+                                  placeholder='Type your message to the clan here...'
+                                  {...field}
+                                  />
+                              </FormControl>
+                              <FormMessage />
+                              </FormItem>
+                          )}
+                          />
+                          {user.rank !== 'Errante' && (
+                          <FormField
+                              control={clanForm.control}
+                              name="rankRestricted"
+                              render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                  <FormControl>
+                                  <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                  />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                  <FormLabel>
+                                      Visible to my rank and above only
+                                  </FormLabel>
+                                  <FormDescription>
+                                      If checked, this message will be hidden from members with a lower rank than you.
+                                  </FormDescription>
+                                  </div>
+                              </FormItem>
+                              )}
+                          />
+                          )}
+                          <Button type="submit" className="w-full" disabled={loading}>
+                          {loading ? <Loader2 className="animate-spin" /> : <Send />}
+                          <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
+                          </Button>
+                      </form>
+                  </Form>
+              </CardContent>
+          </Card>
+
+          {error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertTitle>Action Failed</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {result && result.success && (
+            <Alert variant="default" className="mt-4">
+              <AlertTitle>Success</AlertTitle>
+              <AlertDescription>{result.message}</AlertDescription>
+            </Alert>
+          )}
+          
+          <MessageHistory currentUserRank={user.rank} />
+        </>
        )}
 
-        {error && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertTitle>Action Failed</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {result && result.success && (
-          <Alert variant="default" className="mt-4">
-            <AlertTitle>Success</AlertTitle>
-            <AlertDescription>{result.message}</AlertDescription>
-          </Alert>
-        )}
-
-        {mode === 'clan' ? (
-          <MessageHistory currentUserRank={user.rank} />
-        ) : (
-          renderDmContent()
-        )}
+        {mode === 'dm' && renderDmContent()}
       </div>
     </AnimatedPage>
   );
