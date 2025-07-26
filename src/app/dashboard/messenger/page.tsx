@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +14,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { sendSecureMessage, SendSecureMessageInput } from '@/ai/flows/send-secure-message';
+import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
 import { Loader2, Send } from 'lucide-react';
 import { AnimatedPage } from '@/components/AnimatedPage';
 
@@ -27,59 +33,146 @@ const clanFormSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
 });
 
+function MessageHistory() {
+  const {
+    data,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+  } = useInfiniteQuery<FetchMessagesOutput>({
+    queryKey: ['clanMessages'],
+    queryFn: ({ pageParam }) => fetchMessages({ from: pageParam as string | undefined }),
+    getNextPageParam: (lastPage) => lastPage.nextFrom,
+    initialPageParam: undefined,
+  });
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // This effect is to auto-scroll to the bottom when the component first loads.
+    const scrollableNode = scrollRef.current?.querySelector('div[data-radix-scroll-area-viewport]');
+    if (scrollableNode) {
+      scrollableNode.scrollTop = scrollableNode.scrollHeight;
+    }
+  }, [data?.pages.length]);
+
+  if (status === 'pending') {
+    return (
+      <div className="space-y-4 p-4">
+        <Skeleton className="h-12 w-full rounded-md" />
+        <Skeleton className="h-12 w-full rounded-md" />
+        <Skeleton className="h-12 w-full rounded-md" />
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Error Loading Messages</AlertTitle>
+        <AlertDescription>{error.message}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  const allMessages = data.pages.flatMap(page => page.messages).reverse();
+
+  return (
+    <div className="flex flex-col h-[60vh] gap-4">
+      <ScrollArea className="flex-grow p-4 border rounded-lg" ref={scrollRef}>
+        <div className="flex justify-center my-2">
+            {hasNextPage && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More Messages'
+                )}
+              </Button>
+            )}
+        </div>
+        <div className="flex flex-col-reverse gap-4">
+          {allMessages.map(msg => (
+            <div key={msg.id} className="flex items-start gap-3">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback>{msg.sender.charAt(1).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm">{msg.sender.split(':')[0]}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}
+                  </span>
+                </div>
+                <p className="text-sm">{msg.content}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
 
 export default function MessengerPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const dmForm = useForm<z.infer<typeof dmFormSchema>>({
     resolver: zodResolver(dmFormSchema),
-    defaultValues: {
-      toUserId: '',
-      message: '',
-    },
+    defaultValues: { toUserId: '', message: '' },
   });
 
   const clanForm = useForm<z.infer<typeof clanFormSchema>>({
     resolver: zodResolver(clanFormSchema),
-    defaultValues: {
-      message: '',
-    },
+    defaultValues: { message: '' },
   });
 
-  // A single submit handler that adapts based on the provided data
-  async function handleSendMessage(values: {message: string, toUserId?: string}) {
+  async function handleSendMessage(values: { message: string, toUserId?: string }) {
     setLoading(true);
     setError(null);
     setResult(null);
 
-    const input: SendSecureMessageInput = { 
+    const input: SendSecureMessageInput = {
       message: values.message,
-      toUserId: values.toUserId, // This will be undefined for clan chat
-     };
+      toUserId: values.toUserId,
+    };
 
     try {
       const response = await sendSecureMessage(input);
       if (response.success) {
-        const successMessage = values.toUserId 
+        const successMessage = values.toUserId
           ? `Message sent successfully to ${values.toUserId}!`
           : `Message sent successfully to the clan chat!`;
         setResult({ success: true, message: successMessage });
         dmForm.reset();
         clanForm.reset();
+        if (!values.toUserId) {
+            // If it was a clan message, refetch the history to show the new message
+            await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
+        }
       } else {
         throw new Error(response.error || 'Failed to send message.');
       }
     } catch (e) {
-      console.error(e);
-      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred. Please try again later.';
+      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   }
-
 
   return (
     <AnimatedPage>
@@ -89,17 +182,15 @@ export default function MessengerPage() {
             <TabsTrigger value="clan-chat">Clan Chat</TabsTrigger>
             <TabsTrigger value="dm">Direct Message</TabsTrigger>
           </TabsList>
-          
-          {/* Clan Chat Tab */}
+
           <TabsContent value="clan-chat">
             <Card>
               <CardHeader>
                 <CardTitle>Clan Communications</CardTitle>
-                <CardDescription>
-                  Send a message to the unified, end-to-end encrypted clan chat.
-                </CardDescription>
+                <CardDescription>View recent messages and send your own to the unified clan chat.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                <MessageHistory />
                 <Form {...clanForm}>
                   <form onSubmit={clanForm.handleSubmit(handleSendMessage)} className="space-y-4">
                     <FormField
@@ -125,19 +216,16 @@ export default function MessengerPage() {
             </Card>
           </TabsContent>
 
-          {/* Direct Message Tab */}
           <TabsContent value="dm">
-             <Card>
+            <Card>
               <CardHeader>
                 <CardTitle>Direct Message</CardTitle>
-                <CardDescription>
-                  Send a private, end-to-end encrypted message to a specific clan member.
-                </CardDescription>
+                <CardDescription>Send a private, end-to-end encrypted message to a specific clan member.</CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...dmForm}>
                   <form onSubmit={dmForm.handleSubmit(handleSendMessage)} className="space-y-4">
-                     <FormField
+                    <FormField
                       control={dmForm.control}
                       name="toUserId"
                       render={({ field }) => (
