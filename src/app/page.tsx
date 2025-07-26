@@ -14,7 +14,6 @@ import { Logo } from '@/components/icons';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { ClientOnly } from '@/components/ui/client-only';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -81,16 +80,14 @@ export default function LoginPage() {
               </form>
             </Form>
           </CardContent>
-            <ClientOnly>
-                <CardFooter className="flex justify-center text-sm">
-                    <p className="text-center">
-                        Don&apos;t have an account?{' '}
-                        <Link href="/signup" className="underline text-primary">
-                            Sign up with an invite code
-                        </Link>
-                    </p>
-                </CardFooter>
-            </ClientOnly>
+            <CardFooter className="flex justify-center text-sm">
+                <p className="text-center">
+                    Don&apos;t have an account?{' '}
+                    <Link href="/signup" className="underline text-primary">
+                        Sign up with an invite code
+                    </Link>
+                </p>
+            </CardFooter>
         </Card>
         <Card className="mt-6 bg-secondary/50">
           <CardHeader>
