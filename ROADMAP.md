@@ -5,21 +5,22 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 - Phase 0 – Scaffolding & Core Libraries (Done)
 - Phase 1 – User Authentication & Role-Based Dashboards (Done)
 - Phase 2 – Secure E2EE Messaging (Done)
-- Phase 3 – Advanced AI-Powered Features (In Progress)
+- Phase 2.5 – Unified Group Chat (In Progress)
+- Phase 3 – Advanced AI-Powered Features
 - Phase 4 – Admin Tooling & User Management
 - Phase N – Pre-Launch Polish
 
-## Current Phase – Phase 3
-- **Phase ID**: P3
-- **Title**: Advanced AI-Powered Features
-- **User Story**: "As a user, I want to receive AI-powered advice on how to advance my rank, so that I have a clear path for progression."
+## Current Phase – Phase 2.5
+- **Phase ID**: P2.5
+- **Title**: Unified Group Chat
+- **User Story**: "As a clan member, I want to communicate with everyone in a single, unified group chat, so that we can easily coordinate and build community."
 - **Core Acceptance Criteria**:
-  - [ ] A dedicated "Rank Advisor" page exists.
-  - [ ] The page uses a Genkit flow to send user profile data to an AI model.
-  - [ ] The AI's recommendations are displayed to the user on the page.
-- **File / Module Touches**: `src/app/dashboard/rank-advisor/page.tsx`, `src/ai/flows/rank-advisor.ts`
+  - [ ] The messenger page sends messages to a single, hardcoded clan chat room.
+  - [ ] The UI is simplified by removing the "recipient" field.
+  - [ ] The backend flow is updated to handle sending messages to the group chat.
+- **File / Module Touches**: `src/app/dashboard/messenger/page.tsx`, `src/ai/flows/send-secure-message.ts`
 - **Status**: In Progress
-- **Notes / Open Questions**: Will the AI need access to more data sources to give better advice?
+- **Notes / Open Questions**: An admin must create the clan chat room in Matrix and set the `MATRIX_CLAN_ROOM_ID` environment variable.
 
 ## All Phases (Full List)
 
@@ -46,8 +47,7 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
   - [x] The UI displays different dashboard components based on user rank (Errante, Scout, Conquistador, Admin).
   - [x] A basic navigation sidebar exists that shows/hides items based on rank.
   - [x] The system uses a global state manager (Zustand) to hold user information.
-  - [x] A secure middleware protects all `/dashboard` routes.
-- **File / Module Touches**: `src/hooks/use-auth.tsx`, `src/app/dashboard/page.tsx`, `src/components/dashboard/`, `src/store/userStore.ts`, `src/lib/constants.ts`, `src/middleware.ts`
+- **File / Module Touches**: `src/hooks/use-auth.tsx`, `src/app/dashboard/page.tsx`, `src/components/dashboard/`, `src/store/userStore.ts`, `src/lib/constants.ts`
 - **Status**: Done
 - **Notes / Open Questions**: Invite code validation logic needs to be secured via a backend flow.
 
@@ -61,9 +61,22 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
   - [x] Users can enter a recipient's Matrix ID and a message.
   - [x] Clicking "Send" successfully sends an E2EE message via the Matrix protocol.
   - [x] The backend logic is handled by a secure Genkit flow.
-- **File / Module Touches**: `src/app/dashboard/messenger/page.tsx`, `src/ai/flows/send-secure-message.ts`, `src/lib/constants.ts`, `package.json`
+- **File / Module Touches**: `src/app/dashboard/messenger/page.tsx`, `src/ai/flows/send-secure-message.ts`, `src/lib/constants.ts`, `package.json`, `CODEBASE_MAP.md`
 - **Status**: Done
-- **Notes / Open Questions**: The Matrix client credentials in the flow are currently placeholders.
+- **Notes / Open Questions**: The initial implementation focused on 1-to-1 chats.
+
+---
+
+- [ ] **Phase ID**: P2.5
+- **Title**: Unified Group Chat
+- **User Story**: "As a clan member, I want to communicate with everyone in a single, unified group chat, so that we can easily coordinate and build community."
+- **Core Acceptance Criteria**:
+  - [ ] The messenger page sends messages to a single, hardcoded clan chat room.
+  - [ ] The UI is simplified by removing the "recipient" field.
+  - [ ] The backend flow is updated to handle sending messages to the group chat.
+- **File / Module Touches**: `src/app/dashboard/messenger/page.tsx`, `src/ai/flows/send-secure-message.ts`
+- **Status**: In Progress
+- **Notes / Open Questions**: An admin must create the clan chat room in Matrix and set the `MATRIX_CLAN_ROOM_ID` environment variable.
 
 ---
 
@@ -75,7 +88,7 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
   - [ ] The page uses a Genkit flow to send user profile data to an AI model.
   - [ ] The AI's recommendations are displayed to the user on the page.
 - **File / Module Touches**: `src/app/dashboard/rank-advisor/page.tsx`, `src/ai/flows/rank-advisor.ts`
-- **Status**: In Progress
+- **Status**: Not Started
 - **Notes / Open Questions**: Will the AI need access to more data sources to give better advice?
 
 ---
@@ -90,6 +103,19 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 - **File / Module Touches**: `src/components/dashboard/rank-specific/admin-dashboard.tsx`, `src/ai/flows/set-custom-claim.ts`
 - **Status**: Not Started
 - **Notes / Open Questions**: What other management tools will admins need?
+
+---
+
+- [ ] **Phase ID**: P-Future
+- **Title**: AI-Powered Audio Messages
+- **User Story**: "As a user, I want to be able to send my messages as audible voice notes, so that I can communicate in a more expressive way."
+- **Core Acceptance Criteria**:
+  - [ ] Add a Text-to-Speech (TTS) Genkit flow.
+  - [ ] Add a "Send as Voice" button to the messenger.
+  - [ ] Display an audio player for sent/received voice messages.
+- **File / Module Touches**: `src/app/dashboard/messenger/page.tsx`, `src/ai/flows/text-to-speech.ts`
+- **Status**: Not Started
+- **Notes / Open Questions**: Requires `wav` package.
 
 ---
 

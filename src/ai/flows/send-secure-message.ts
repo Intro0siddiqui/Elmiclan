@@ -11,7 +11,9 @@ import { z } from 'genkit';
 // inside the flow itself, not at the top level.
 
 const SendSecureMessageInputSchema = z.object({
-  toUserId: z.string().describe("The recipient's Matrix ID (e.g., '@bob:matrix.org')."),
+  // toUserId is kept for schema compatibility with the frontend, but is no longer used
+  // to determine the room.
+  toUserId: z.string().optional(),
   message: z.string().describe('The plain-text message to send.'),
 });
 export type SendSecureMessageInput = z.infer<typeof SendSecureMessageInputSchema>;
@@ -35,9 +37,14 @@ const sendSecureMessageFlow = ai.defineFlow(
     inputSchema: SendSecureMessageInputSchema,
     outputSchema: SendSecureMessageOutputSchema,
   },
-  async ({ toUserId, message }) => {
+  async ({ message }) => {
     let client: any = null;
     try {
+      // This is the hardcoded ID for the main clan chat room.
+      // In a real application, an admin would create this room in Matrix
+      // and the ID would be stored as a secure environment variable.
+      const clanRoomId = process.env.MATRIX_CLAN_ROOM_ID || '!YourMainClanRoomID:matrix.org';
+
       // Dynamically import the SDK when the flow is invoked
       const sdk = await import('matrix-js-sdk');
 
@@ -70,52 +77,40 @@ const sendSecureMessageFlow = ai.defineFlow(
         });
       });
 
-      // 1) Find an existing 1-to-1 room or create a new one
-      console.log(`Searching for room with ${toUserId}`);
-      const rooms = client.getRooms();
-      let roomId = rooms.find((r: any) => {
-        const members = r.getInvitedAndJoinedMemberIds();
-        return members.includes(toUserId) && members.length === 2;
-      })?.roomId;
-      
-      if (!roomId) {
-        console.log(`No existing room found. Creating a new one...`);
-        const createRoomResponse = await client.createRoom({
-          preset: 'trusted_private_chat',
-          invite: [toUserId],
-          is_direct: true,
-          initial_state: [
-            {
-              type: 'm.room.encryption',
-              state_key: '',
-              content: { algorithm: 'm.megolm.v1.aes-sha2' },
-            },
-          ],
-        });
-        roomId = createRoomResponse.room_id;
-        console.log(`Created room with ID: ${roomId}`);
-      } else {
-        console.log(`Found existing room with ID: ${roomId}`);
+      // Ensure the bot is a member of the clan room.
+      // An admin would need to invite the bot user to the room first.
+      const room = client.getRoom(clanRoomId);
+      if (!room) {
+          console.log(`Bot is not in room ${clanRoomId}. Attempting to join...`);
+          await client.joinRoom(clanRoomId);
+          console.log(`Successfully joined room ${clanRoomId}.`);
       }
-      
-      // 2) Wait for the room to be encrypted
+
+      // 1) Wait for the room to be encrypted
       console.log('Waiting for room to be encrypted...');
-      await client.waitForRoomToBeEncrypted(roomId);
+      await client.waitForRoomToBeEncrypted(clanRoomId);
       console.log('Room is encrypted.');
 
-      // 3) Send the message
+      // 2) Send the message
       const content = {
         body: message,
         msgtype: 'm.text',
       };
-      console.log(`Sending message to room ${roomId}`);
-      await client.sendMessage(roomId, content);
+      console.log(`Sending message to clan room ${clanRoomId}`);
+      await client.sendMessage(clanRoomId, content);
       console.log('Message sent successfully.');
       
-      return { success: true, roomId };
+      return { success: true, roomId: clanRoomId };
 
     } catch (e: any) {
       console.error('Matrix send failed:', e);
+      // Provide a more user-friendly error if the room is not found
+      if (e.errcode === 'M_NOT_FOUND') {
+        return {
+          success: false,
+          error: 'The main clan chat room was not found. Please contact an administrator to set it up.',
+        };
+      }
       return {
         success: false,
         error: e.message || 'An unknown error occurred during the Matrix operation.',

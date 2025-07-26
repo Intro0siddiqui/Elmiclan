@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -16,7 +15,6 @@ import { Loader2, Send } from 'lucide-react';
 import { AnimatedPage } from '@/components/AnimatedPage';
 
 const formSchema = z.object({
-  toUserId: z.string().startsWith('@', "Matrix ID must start with '@'").includes(':', "Matrix ID must include a homeserver (e.g., :matrix.org)"),
   message: z.string().min(1, 'Message cannot be empty.'),
 });
 
@@ -28,7 +26,6 @@ export default function MessengerPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      toUserId: '',
       message: '',
     },
   });
@@ -38,12 +35,13 @@ export default function MessengerPage() {
     setError(null);
     setResult(null);
 
-    const input: SendSecureMessageInput = values;
+    // The toUserId is no longer needed for a unified chat, but the flow expects the object.
+    const input: SendSecureMessageInput = { message: values.message };
 
     try {
       const response = await sendSecureMessage(input);
       if (response.success) {
-        setResult({ success: true, message: `Message sent successfully to room ${response.roomId}` });
+        setResult({ success: true, message: `Message sent successfully to the clan chat!` });
         form.reset();
       } else {
         throw new Error(response.error || 'Failed to send message.');
@@ -62,9 +60,9 @@ export default function MessengerPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Secure Messenger</CardTitle>
+            <CardTitle>Clan Communications</CardTitle>
             <CardDescription>
-              Send end-to-end encrypted messages using the Matrix protocol. Your communications are private.
+              Send a message to the unified, end-to-end encrypted clan chat.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -72,25 +70,12 @@ export default function MessengerPage() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="toUserId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Recipient Matrix ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="@bob:matrix.org" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
                   name="message"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Encrypted Message</FormLabel>
+                      <FormLabel>Your Message</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Type your secret message here..." {...field} />
+                        <Textarea placeholder="Type your message to the clan here..." {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -102,7 +87,7 @@ export default function MessengerPage() {
                   ) : (
                     <Send />
                   )}
-                  <span>{loading ? 'Sending...' : 'Send Secure Message'}</span>
+                  <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
                 </Button>
               </form>
             </Form>
