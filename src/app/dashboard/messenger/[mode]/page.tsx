@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, use } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -247,7 +247,7 @@ function PartnerFinder({
           <Users className="h-5 w-5" />
           <CardTitle>Find a Partner</CardTitle>
         </div>
-        <CardDescription>You can send requests to members of your rank or to any Admin. Select a user to start a conversation.</CardDescription>
+        <CardDescription>You can send requests to members of your rank or lower. Admins are always visible. Select a user to start a conversation.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -385,9 +385,10 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
 type DmView = 'list' | 'new' | 'chat';
 
 export default function MessengerPage() {
-  const { user } = useAuth();
   const params = useParams();
   const mode = params.mode as string;
+  const { user } = useAuth();
+  
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
