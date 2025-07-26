@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useState, useRef, useEffect, forwardRef, useId } from 'react';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,6 +40,7 @@ type ResultState = {
   message: string;
 };
 
+// #region Message History Components
 function MessageBubble({ text }: { text: string }) {
   return (
     <div className="relative inline-block bg-gradient-to-b from-blue-600 to-blue-800 text-white rounded-lg px-4 py-2 shadow-md border border-blue-400">
@@ -144,13 +145,15 @@ function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
     </div>
   );
 }
+// #endregion
 
+// #region Direct Message Components
 const MOCK_CONVERSATIONS = [
   {
     id: 'convo-1',
     partnerName: 'Sam Scout',
     partnerMatrixId: '@scout:matrix.org',
-    lastMessage: 'Hey, I found something interesting near the Crystal Caves. Let me know when you are online.',
+    lastMessage: 'Hey, I found something interesting near the Crystal Caves. Let me know when you are online because I might need some help with it.',
     timestamp: '2h ago',
     avatar: 'https://placehold.co/100x100.png',
     dataAiHint: 'avatar person',
@@ -176,8 +179,6 @@ const MOCK_CONVERSATIONS = [
 ];
 
 function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () => void; onSelectConversation: (partnerId: string) => void }) {
-  const conversations = MOCK_CONVERSATIONS;
-
   return (
     <Card>
       <CardHeader>
@@ -194,7 +195,7 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
         <CardDescription>Your recent direct message history.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
-        {conversations.map((convo) => (
+        {MOCK_CONVERSATIONS.map((convo) => (
             <div key={convo.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary cursor-pointer transition-colors" onClick={() => onSelectConversation(convo.partnerMatrixId)}>
                 <Avatar className="h-12 w-12 border-2 border-primary shrink-0">
                     <AvatarImage src={convo.avatar} alt={convo.partnerName} data-ai-hint={convo.dataAiHint} />
@@ -214,7 +215,6 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
   )
 }
 
-
 function PartnerFinder({
   currentUserRank,
   currentUserEmail,
@@ -230,9 +230,7 @@ function PartnerFinder({
     .map(([email, user]) => ({ email, ...user }))
     .filter(user => {
       if (user.email === currentUserEmail) return false; // Exclude self
-      // Admins are always visible
       if (user.rank === 'Admin') return true;
-      // Show users of equal or lower rank
       return rankHierarchy[user.rank] <= rankHierarchy[currentUserRank];
     });
 
@@ -248,16 +246,13 @@ function PartnerFinder({
           <Users className="h-5 w-5" />
           <CardTitle>Find a Partner</CardTitle>
         </div>
-        <CardDescription>You can send requests to members of your rank or lower. Admins are always visible. Select a user to start a conversation.</CardDescription>
+        <CardDescription>Select a user to start a conversation. Admins are always visible.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="your-id">Your Matrix ID (Share this to be contacted)</Label>
           <Input id="your-id" readOnly value={currentUserMatrixId} />
         </div>
-        <p className="text-sm text-muted-foreground">
-          You can see members of your rank or lower. Select a user to start a conversation.
-        </p>
         <div className="space-y-3">
           {potentialPartners.length > 0 ? (
             potentialPartners.map(user => {
@@ -308,13 +303,9 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
     try {
       const response = await sendSecureMessage(input);
       if (response.success) {
-        form.reset({
-          message: '',
-          toUserId: values.toUserId,
-          rankRestricted: false,
-        });
+        form.reset({ message: '', toUserId: values.toUserId, rankRestricted: false });
         await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
-        onMessageSent(); // Go back to conversation list on success
+        onMessageSent();
       } else {
         throw new Error(response.error || 'Failed to send message.');
       }
@@ -336,7 +327,7 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
                     </Button>
                     <CardTitle>Send Direct Message</CardTitle>
                 </div>
-                <CardDescription>Your message will be end-to-end encrypted.</CardDescription>
+                <CardDescription>Your message to {toUserId} will be end-to-end encrypted.</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
@@ -347,7 +338,7 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
                             <FormItem>
                                 <FormLabel>Recipient Matrix ID</FormLabel>
                                 <FormControl>
-                                    <Input {...field} readOnly placeholder="Select a partner to fill this"/>
+                                    <Input {...field} readOnly />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -382,12 +373,12 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
       </FormProvider>
     );
 }
+// #endregion
 
 type DmView = 'list' | 'new' | 'chat';
 
 export default function MessengerPage() {
   const params = useParams();
-  const mode = params.mode as string;
   const { user } = useAuth();
   
   const [loading, setLoading] = useState(false);
@@ -397,6 +388,7 @@ export default function MessengerPage() {
   const [selectedPartner, setSelectedPartner] = useState<string>('');
 
   const queryClient = useQueryClient();
+  const mode = params.mode as string;
 
   const clanForm = useForm<z.infer<typeof messageFormSchema>>({
     resolver: zodResolver(messageFormSchema),
@@ -432,11 +424,7 @@ export default function MessengerPage() {
       const response = await sendSecureMessage(input);
       if (response.success) {
         setResult({ success: true, message: `Message sent successfully to the clan chat!` });
-        clanForm.reset({
-          message: '',
-          toUserId: '',
-          rankRestricted: false,
-        });
+        clanForm.reset({ message: '', toUserId: '', rankRestricted: false });
         await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
       } else {
         throw new Error(response.error || 'Failed to send message.');
@@ -471,60 +459,60 @@ export default function MessengerPage() {
        {mode === 'clan' && (
         <>
           <Card>
-              <CardHeader>
-                  <CardTitle>Clan Chat</CardTitle>
-                  <CardDescription>Communicate with all clan members in the main chat room.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <Form {...clanForm}>
-                      <form onSubmit={clanForm.handleSubmit(handleSendClanMessage)} className="space-y-4">
-                          <FormField
-                          control={clanForm.control}
-                          name="message"
-                          render={({ field }) => (
-                              <FormItem>
-                              <FormLabel>Your Message</FormLabel>
-                              <FormControl>
-                                  <Textarea
-                                  placeholder='Type your message to the clan here...'
-                                  {...field}
-                                  />
-                              </FormControl>
-                              <FormMessage />
-                              </FormItem>
-                          )}
-                          />
-                          {user.rank !== 'Errante' && (
-                          <FormField
-                              control={clanForm.control}
-                              name="rankRestricted"
-                              render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                  <FormControl>
-                                  <Checkbox
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                  />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                  <FormLabel>
-                                      Visible to my rank and above only
-                                  </FormLabel>
-                                  <FormDescription>
-                                      If checked, this message will be hidden from members with a lower rank than you.
-                                  </FormDescription>
-                                  </div>
-                              </FormItem>
-                              )}
-                          />
-                          )}
-                          <Button type="submit" className="w-full" disabled={loading}>
-                          {loading ? <Loader2 className="animate-spin" /> : <Send />}
-                          <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
-                          </Button>
-                      </form>
-                  </Form>
-              </CardContent>
+            <CardHeader>
+                <CardTitle>Clan Chat</CardTitle>
+                <CardDescription>Communicate with all clan members in the main chat room.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...clanForm}>
+                    <form onSubmit={clanForm.handleSubmit(handleSendClanMessage)} className="space-y-4">
+                        <FormField
+                        control={clanForm.control}
+                        name="message"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Your Message</FormLabel>
+                            <FormControl>
+                                <Textarea
+                                placeholder='Type your message to the clan here...'
+                                {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        {user.rank !== 'Errante' && (
+                        <FormField
+                            control={clanForm.control}
+                            name="rankRestricted"
+                            render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                <FormControl>
+                                <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                <FormLabel>
+                                    Visible to my rank and above only
+                                </FormLabel>
+                                <FormDescription>
+                                    If checked, this message will be hidden from members with a lower rank than you.
+                                </FormDescription>
+                                </div>
+                            </FormItem>
+                            )}
+                        />
+                        )}
+                        <Button type="submit" className="w-full" disabled={loading}>
+                        {loading ? <Loader2 className="animate-spin" /> : <Send />}
+                        <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
           </Card>
 
           {error && (
@@ -550,3 +538,5 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
+
+    
