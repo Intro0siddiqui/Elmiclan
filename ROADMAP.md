@@ -4,22 +4,23 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 # Phase Legend
 - Phase 0 – Scaffolding & Core Libraries (Done)
 - Phase 1 – User Authentication & Role-Based Dashboards (In Progress)
-- Phase 2 – Advanced AI-Powered Features
-- Phase 3 – Admin Tooling & User Management
+- Phase 2 – Secure E2EE Messaging (In Progress)
+- Phase 3 – Advanced AI-Powered Features
+- Phase 4 – Admin Tooling & User Management
 - Phase N – Pre-Launch Polish
 
-## Current Phase – Phase 1
-- **Phase ID**: P1
-- **Title**: User Authentication & Role-Based Dashboards
-- **User Story**: "As a clan member, I want to securely log in and see a dashboard tailored to my rank, so that I only see relevant information and options."
+## Current Phase – Phase 2
+- **Phase ID**: P2
+- **Title**: Secure E2EE Messaging
+- **User Story**: "As a clan member, I want to send end-to-end encrypted messages to other members, so that our communications remain private and secure."
 - **Core Acceptance Criteria**:
-  - [x] Users can log in using a mock authentication system.
-  - [x] The UI displays different dashboard components based on user rank (Errante, Scout, Conquistador, Admin).
-  - [x] A basic navigation sidebar exists that shows/hides items based on rank.
-  - [x] The system uses a global state manager (Zustand) to hold user information.
-- **File / Module Touches**: `src/hooks/use-auth.tsx`, `src/app/dashboard/page.tsx`, `src/components/dashboard/`, `src/store/userStore.ts`, `src/lib/constants.ts`
+  - [ ] A new "Messenger" page is available in the dashboard.
+  - [ ] Users can enter a recipient's Matrix ID and a message.
+  - [ ] Clicking "Send" successfully sends an E2EE message via the Matrix protocol.
+  - [ ] The backend logic is handled by a secure Genkit flow.
+- **File / Module Touches**: `src/app/dashboard/messenger/page.tsx`, `src/ai/flows/send-secure-message.ts`, `src/lib/constants.ts`, `package.json`
 - **Status**: In Progress
-- **Notes / Open Questions**: Invite code validation logic is currently basic and needs to be secured via a backend flow.
+- **Notes / Open Questions**: The Matrix client credentials in the flow are currently placeholders.
 
 ## All Phases (Full List)
 
@@ -46,7 +47,7 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
   - [x] The UI displays different dashboard components based on user rank (Errante, Scout, Conquistador, Admin).
   - [x] A basic navigation sidebar exists that shows/hides items based on rank.
   - [x] The system uses a global state manager (Zustand) to hold user information.
-  - [ ] A secure middleware protects all `/dashboard` routes.
+  - [x] A secure middleware protects all `/dashboard` routes.
 - **File / Module Touches**: `src/hooks/use-auth.tsx`, `src/app/dashboard/page.tsx`, `src/components/dashboard/`, `src/store/userStore.ts`, `src/lib/constants.ts`, `src/middleware.ts`
 - **Status**: In Progress
 - **Notes / Open Questions**: Invite code validation logic needs to be secured via a backend flow.
@@ -54,6 +55,20 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 ---
 
 - [ ] **Phase ID**: P2
+- **Title**: Secure E2EE Messaging
+- **User Story**: "As a clan member, I want to send end-to-end encrypted messages to other members, so that our communications remain private and secure."
+- **Core Acceptance Criteria**:
+  - [ ] A new "Messenger" page is available in the dashboard.
+  - [ ] Users can enter a recipient's Matrix ID and a message.
+  - [ ] Clicking "Send" successfully sends an E2EE message via the Matrix protocol.
+  - [ ] The backend logic is handled by a secure Genkit flow.
+- **File / Module Touches**: `src/app/dashboard/messenger/page.tsx`, `src/ai/flows/send-secure-message.ts`, `src/lib/constants.ts`, `package.json`
+- **Status**: In Progress
+- **Notes / Open Questions**: The Matrix client credentials in the flow are currently placeholders.
+
+---
+
+- [ ] **Phase ID**: P3
 - **Title**: Advanced AI-Powered Features
 - **User Story**: "As a user, I want to receive AI-powered advice on how to advance my rank, so that I have a clear path for progression."
 - **Core Acceptance Criteria**:
@@ -66,7 +81,7 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 
 ---
 
-- [ ] **Phase ID**: P3
+- [ ] **Phase ID**: P4
 - **Title**: Admin Tooling & User Management
 - **User Story**: "As an Admin, I want to manage users and system settings from a secure panel, so that I can maintain the health of the portal."
 - **Core Acceptance Criteria**:
