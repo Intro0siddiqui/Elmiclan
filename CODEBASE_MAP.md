@@ -31,7 +31,7 @@ This document serves as a high-level guide to the ElmiClan Portal codebase. It m
 ## 5. Routing & Navigation
 
 - **`src/middleware.ts`**: The **Next.js Middleware** file. It protects all routes under `/dashboard/*` by checking for a valid session cookie on the server before rendering a page, redirecting unauthenticated users to the login page.
-- **`src/lib/constants.ts`**: Defines application-wide constants, most importantly `NAV_ITEMS`, which configures the labels, icons, and minimum required rank for each item in the dashboard sidebar.
+- **`src/lib/constants.ts`**: Defines application-wide constants, most importantly `NAV_ITEMS`, which an-configures the labels, icons, and minimum required rank for each item in the dashboard sidebar.
 
 ## 6. Backend Logic & AI Flows (Genkit)
 
