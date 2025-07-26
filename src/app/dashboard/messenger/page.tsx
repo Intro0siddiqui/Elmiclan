@@ -6,30 +6,28 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { sendSecureMessage, SendSecureMessageInput } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, Users } from 'lucide-react';
 import { AnimatedPage } from '@/components/AnimatedPage';
+import { MOCK_USERS } from '@/hooks/use-auth';
+import type { Rank } from '@/lib/types';
 
-// Schema for Direct Messages
-const dmFormSchema = z.object({
-  toUserId: z.string().min(1, 'Recipient Matrix ID is required.'),
-  message: z.string().min(1, 'Message cannot be empty.'),
-});
-
-// Schema for Clan Chat
-const clanFormSchema = z.object({
+// Main form schema
+const messageFormSchema = z.object({
+  toUserId: z.string().optional(),
   message: z.string().min(1, 'Message cannot be empty.'),
 });
 
@@ -152,42 +150,102 @@ function MessageHistory() {
   );
 }
 
+function PartnerFinder({ currentUserRank, currentUserEmail }: { currentUserRank: Rank, currentUserEmail: string }) {
+    const potentialPartners = Object.entries(MOCK_USERS)
+        .map(([email, user]) => ({ email, ...user }))
+        .filter(user => {
+            if (user.email === currentUserEmail) return false; // Exclude self
+            if (user.rank === 'Admin') return true; // Admins are always visible
+            return user.rank === currentUserRank;
+        });
+    const currentUserMatrixId = `${currentUserEmail.split('@')[0]}:matrix.org`;
+
+
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    <CardTitle>Find a Partner</CardTitle>
+                </div>
+                <CardDescription>
+                    Connect with members of a similar rank to grow together.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="your-id">Your Matrix ID (Share this to be contacted)</Label>
+                    <Input id="your-id" readOnly value={currentUserMatrixId} />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                    You can send requests to members of your rank or to any Admin. Copy their ID to start a conversation.
+                </p>
+                <div className="space-y-3">
+                    {potentialPartners.length > 0 ? (
+                        potentialPartners.map(user => (
+                            <div key={user.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                                <div>
+                                    <p className="font-semibold">{user.name} ({user.rank})</p>
+                                    <p className="text-xs text-muted-foreground">{`${user.email.split('@')[0]}:matrix.org`}</p>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => navigator.clipboard.writeText(`${user.email.split('@')[0]}:matrix.org`)}
+                                >
+                                    Copy ID
+                                </Button>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-sm text-center text-muted-foreground">No available partners of your rank right now.</p>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
 export default function MessengerPage() {
+  const { user } = useAuth();
+  const [mode, setMode] = useState<'clan' | 'dm'>('clan');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const dmForm = useForm<z.infer<typeof dmFormSchema>>({
-    resolver: zodResolver(dmFormSchema),
+  const form = useForm<z.infer<typeof messageFormSchema>>({
+    resolver: zodResolver(messageFormSchema),
     defaultValues: { toUserId: '', message: '' },
   });
 
-  const clanForm = useForm<z.infer<typeof clanFormSchema>>({
-    resolver: zodResolver(clanFormSchema),
-    defaultValues: { message: '' },
-  });
-
-  async function handleSendMessage(values: { message: string, toUserId?: string }) {
+  async function handleSendMessage(values: z.infer<typeof messageFormSchema>) {
+    if (mode === 'dm' && !values.toUserId) {
+        form.setError('toUserId', { type: 'manual', message: 'Recipient Matrix ID is required for Direct Messages.' });
+        return;
+    }
+      
     setLoading(true);
     setError(null);
     setResult(null);
 
     const input: SendSecureMessageInput = {
       message: values.message,
-      toUserId: values.toUserId,
+      toUserId: mode === 'dm' ? values.toUserId : undefined,
     };
 
     try {
       const response = await sendSecureMessage(input);
       if (response.success) {
-        const successMessage = values.toUserId
+        const successMessage = mode === 'dm'
           ? `Message sent successfully to ${values.toUserId}!`
           : `Message sent successfully to the clan chat!`;
         setResult({ success: true, message: successMessage });
-        dmForm.reset();
-        clanForm.reset();
-        if (!values.toUserId) {
+        form.reset({
+            message: '',
+            toUserId: mode === 'dm' ? values.toUserId : ''
+        });
+        if (mode === 'clan') {
             await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
         }
       } else {
@@ -201,112 +259,91 @@ export default function MessengerPage() {
     }
   }
 
+  if (!user) return null;
+
   return (
     <AnimatedPage>
       <div className="max-w-2xl mx-auto space-y-6">
-        <Tabs defaultValue="clan-chat" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="clan-chat">Clan Chat</TabsTrigger>
-            <TabsTrigger value="dm">Direct Message</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="clan-chat">
-            <Card>
-              <CardHeader>
-                <CardTitle>Clan Communications</CardTitle>
-                <CardDescription>View recent messages and send your own to the unified clan chat.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <MessageHistory />
-                <Form {...clanForm}>
-                  <form onSubmit={clanForm.handleSubmit((values) => handleSendMessage(values))} className="space-y-4">
-                    <FormField
-                      control={clanForm.control}
-                      name="message"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Your Message</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Type your message to the clan here..." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex gap-2">
-                        <Button type="submit" className="flex-1" disabled={loading}>
-                          {loading ? <Loader2 className="animate-spin" /> : <Send />}
-                          <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
+        <Card>
+            <CardHeader>
+                <CardTitle>ElmiClan Messenger</CardTitle>
+                <CardDescription>Select a mode to begin communicating.</CardDescription>
+                 <div className="pt-2">
+                    <Select onValueChange={(value) => setMode(value as 'clan' | 'dm')} defaultValue={mode}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a chat mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="clan">Clan Chat</SelectItem>
+                            <SelectItem value="dm">Direct Message</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
+                        {mode === 'dm' && (
+                            <FormField
+                            control={form.control}
+                            name="toUserId"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Recipient Matrix ID</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="@username:matrix.org" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        )}
+                        <FormField
+                            control={form.control}
+                            name="message"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Your Message</FormLabel>
+                                <FormControl>
+                                <Textarea placeholder={mode === 'clan' ? "Type your message to the clan here..." : "Type your private message here..."} {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <Button type="submit" className="w-full" disabled={loading}>
+                            {loading ? <Loader2 className="animate-spin" /> : <Send />}
+                            <span>{loading ? 'Sending...' : (mode === 'clan' ? 'Send to Clan Chat' : 'Send Direct Message')}</span>
                         </Button>
-                    </div>
-                  </form>
+                    </form>
                 </Form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="dm">
-            <Card>
-              <CardHeader>
-                <CardTitle>Direct Message</CardTitle>
-                <CardDescription>Send a private, end-to-end encrypted message to a specific clan member.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...dmForm}>
-                  <form onSubmit={dmForm.handleSubmit((values) => handleSendMessage(values))} className="space-y-4">
-                    <FormField
-                      control={dmForm.control}
-                      name="toUserId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Recipient Matrix ID</FormLabel>
-                          <FormControl>
-                            <Input placeholder="@username:matrix.org" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={dmForm.control}
-                      name="message"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Your Message</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Type your private message here..." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex gap-2">
-                        <Button type="submit" className="flex-1" disabled={loading}>
-                          {loading ? <Loader2 className="animate-spin" /> : <Send />}
-                          <span>{loading ? 'Sending...' : 'Send Direct Message'}</span>
-                        </Button>
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
+            </CardContent>
+        </Card>
+        
         {error && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertTitle>Action Failed</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+            <Alert variant="destructive" className="mt-4">
+                <AlertTitle>Action Failed</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
         )}
 
         {result && result.success && (
-          <Alert variant="default" className="mt-4">
-            <AlertTitle>Success</AlertTitle>
-            <AlertDescription>{result.message}</AlertDescription>
-          </Alert>
+            <Alert variant="default" className="mt-4">
+                <AlertTitle>Success</AlertTitle>
+                <AlertDescription>{result.message}</AlertDescription>
+            </Alert>
         )}
+
+        {mode === 'clan' ? (
+             <MessageHistory />
+        ) : (
+            <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} />
+        )}
+
       </div>
     </AnimatedPage>
   );
 }
+
+
+    
