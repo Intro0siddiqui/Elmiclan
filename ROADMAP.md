@@ -8,8 +8,8 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 - Phase 2.5 – Unified Group Chat & DM (Done)
 - Phase 3 – Advanced AI-Powered Features (Done)
 - Phase 4 – Admin Tooling & User Management (Done)
-- Phase P-Future - AI-Powered Audio Messages (Done)
 - Phase N – Pre-Launch Polish (In Progress)
+- Phase Post-Launch - Future Enhancements (Not Started)
 
 ## Current Phase – Phase N
 - **Phase ID**: P-N
@@ -23,6 +23,18 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 - **File / Module Touches**: Entire codebase.
 - **Status**: In Progress
 - **Notes / Open Questions**: None.
+
+---
+
+## Post-Launch Phases
+
+- **Phase ID**: P-Future-TTS
+- **Title**: AI-Powered Audio Messages
+- **User Story**: "As a user, I want to be able to send my messages as audible voice notes, so that I can communicate in a more expressive way."
+- **Status**: Not Started
+- **Notes**: Deferred until after initial launch. Requires a custom, self-hosted server running the `eSpeak` text-to-speech engine to be built by the project owner. This will provide a more cost-effective and efficient solution than a general-purpose LLM.
+
+---
 
 ## All Phases (Full List)
 
@@ -68,20 +80,19 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 
 ---
 
-- [x] **Phase ID**: P-Future
+- [ ] **Phase ID**: P-Future-TTS
 - **Title**: AI-Powered Audio Messages
-- **User Story**: "As a user, I want to be able to send my messages as audible voice notes, so that I can communicate in a more expressive way."
-- **Status**: Done
+- **Status**: Not Started
+- **Notes**: Deferred for post-launch.
 
 ---
 
 - [ ] **Phase ID**: P-N
 - **Title**: Pre-Launch Polish
 - **User Story**: "As the project owner, I want to polish the UI, optimize performance, and ensure all features are robust, so that the portal is ready for its first users."
-- **Status**: Not Started
+- **Status**: In Progress
 
 # Done Log
-- **P-Future - AI-Powered Audio Messages**: Completed.
 - **P4 - Admin Tooling & User Management**: Completed.
 - **P3 - Advanced AI-Powered Features**: Completed.
 - **P2.5 - Unified Group Chat & DM**: Completed.
