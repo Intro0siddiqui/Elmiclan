@@ -6,7 +6,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import * as sdk from 'matrix-js-sdk';
+// Do not import matrix-js-sdk at the top level
 
 // WARNING: In a real app, you would not hardcode credentials.
 // They would be fetched securely for the authenticated user, e.g., from Firestore.
@@ -28,19 +28,20 @@ export const SendSecureMessageOutputSchema = z.object({
 });
 export type SendSecureMessageOutput = z.infer<typeof SendSecureMessageOutputSchema>;
 
+// The matrix client will be stored in memory for the lifetime of the server instance
+let matrixClient: any | null = null;
 
-let matrixClient: sdk.MatrixClient | null = null;
-
-async function getMatrixClient(): Promise<sdk.MatrixClient> {
+async function getMatrixClient() {
   if (matrixClient && matrixClient.isClientRunning()) {
     return matrixClient;
   }
-
-  // If the client exists but isn't running, stop it before creating a new one.
-  if (matrixClient) {
-      matrixClient.stopClient();
-  }
   
+  if (matrixClient) {
+    matrixClient.stopClient();
+  }
+
+  const sdk = await import('matrix-js-sdk');
+
   console.log('No running client found. Initializing new Matrix client...');
   const newClient = sdk.createClient({
     baseUrl: MATRIX_HOMESERVER,
@@ -49,10 +50,15 @@ async function getMatrixClient(): Promise<sdk.MatrixClient> {
   });
 
   await newClient.initCrypto();
-  
-  // Use a promise to wait for the 'sync' event, which indicates the client is ready.
+
   await new Promise<void>((resolve, reject) => {
+    const syncTimeout = setTimeout(() => {
+        reject(new Error('Matrix client sync timed out after 20 seconds.'));
+        newClient.stopClient();
+    }, 20000); // 20-second timeout
+
     newClient.once('sync' as any, (state, prevState, res) => {
+      clearTimeout(syncTimeout);
       if (state === 'PREPARED') {
         console.log('Matrix client synced and ready.');
         resolve();
@@ -61,7 +67,7 @@ async function getMatrixClient(): Promise<sdk.MatrixClient> {
         reject(new Error('Failed to sync with Matrix homeserver.'));
       }
     });
-    
+
     newClient.startClient({ initialSyncLimit: 10 });
   });
 
@@ -69,14 +75,12 @@ async function getMatrixClient(): Promise<sdk.MatrixClient> {
   return matrixClient;
 }
 
-
 export async function sendSecureMessage(input: SendSecureMessageInput): Promise<SendSecureMessageOutput> {
   // In a real implementation, you would perform a security check here to ensure
   // the fromUid matches the authenticated user session.
   console.log(`Request from user ${input.fromUid} to send message.`);
   return sendSecureMessageFlow(input);
 }
-
 
 const sendSecureMessageFlow = ai.defineFlow(
   {
@@ -87,13 +91,13 @@ const sendSecureMessageFlow = ai.defineFlow(
   async ({ toUserId, message }) => {
     try {
         const mx = await getMatrixClient();
+        const sdk = await import('matrix-js-sdk');
 
         // 1. Find or create a direct, encrypted room
         const rooms = mx.getRooms();
-        let room = rooms.find(r => {
-            const memberIds = r.getInvitedAndJoinedMemberIds();
-            const isDirect = r.isDirect();
-            return isDirect && memberIds.length === 2 && memberIds.includes(toUserId) && memberIds.includes(MATRIX_USER_ID);
+        let room = rooms.find((r: any) => {
+            const members = r.getInvitedAndJoinedMemberIds();
+            return r.isDirect() && members.length === 2 && members.includes(toUserId) && members.includes(MATRIX_USER_ID);
         });
 
         let roomId = room?.roomId;
@@ -104,7 +108,7 @@ const sendSecureMessageFlow = ai.defineFlow(
                 preset: 'trusted_private_chat',
                 invite: [toUserId],
                 is_direct: true,
-                visibility: 'private',
+                visibility: sdk.Visibility.Private,
                 initial_state: [
                     {
                         type: 'm.room.encryption',
@@ -119,7 +123,6 @@ const sendSecureMessageFlow = ai.defineFlow(
             console.log(`Found existing room ${roomId} with ${toUserId}.`);
         }
         
-        // Ensure the room is encrypted before sending
         if (!mx.isRoomEncrypted(roomId)) {
              console.log(`Room ${roomId} not encrypted. Waiting for encryption...`);
              await mx.waitForRoomToBeEncrypted(roomId, { timeout: 10000 });
@@ -134,11 +137,9 @@ const sendSecureMessageFlow = ai.defineFlow(
         return { success: true, roomId };
     } catch (e: any) {
         console.error('Matrix send failed:', e);
-        // If client is running, stop it to clean up for next attempt
         if (matrixClient && matrixClient.isClientRunning()) {
             matrixClient.stopClient();
         }
-        // Nullify the client so a fresh one is created on next attempt
         matrixClient = null; 
         return { success: false, error: e.message || 'An unknown error occurred.' };
     }

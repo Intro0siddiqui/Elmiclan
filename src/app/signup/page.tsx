@@ -16,13 +16,11 @@ import { useToast } from '@/hooks/use-toast';
 import { VALID_INVITE_CODES } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
 import { ClientOnly } from '@/components/ui/client-only';
+import { validateInviteCode } from '@/ai/flows/validate-invite-code';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
   inviteCode: z.string().min(1, { message: 'Invite code is required.' })
-    .refine(code => VALID_INVITE_CODES.includes(code.toUpperCase()), {
-      message: 'Invalid invite code.',
-    }),
 });
 
 export default function SignupPage() {
@@ -41,6 +39,12 @@ export default function SignupPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
+      const validation = await validateInviteCode({ inviteCode: values.inviteCode });
+      if (!validation.isValid) {
+        form.setError('inviteCode', { type: 'manual', message: validation.message });
+        setIsLoading(false);
+        return;
+      }
       // New users start as 'Errante'
       await signup(values.email, 'Errante');
     } catch (error) {
