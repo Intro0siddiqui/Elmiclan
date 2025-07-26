@@ -55,20 +55,19 @@ export function DashboardSidebar() {
                              <div className="flex items-center gap-2">
                                 <item.icon />
                                 <span>{item.label}</span>
-                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 ml-auto" />
                              </div>
                         </SidebarMenuButton>
                     </AccordionTrigger>
                     <AccordionContent>
                       <SidebarMenuSub>
                         {item.subItems.map(subItem => (
-                          <li key={subItem.href}>
-                              <Link href={subItem.href}>
-                                <SidebarMenuSubButton isActive={pathname === subItem.href}>
-                                  {subItem.label}
+                          <SidebarMenuSubItem key={subItem.href}>
+                              <Link href={subItem.href} legacyBehavior passHref>
+                                <SidebarMenuSubButton asChild isActive={pathname === subItem.href}>
+                                  <a>{subItem.label}</a>
                                 </SidebarMenuSubButton>
                               </Link>
-                          </li>
+                          </SidebarMenuSubItem>
                         ))}
                       </SidebarMenuSub>
                     </AccordionContent>
