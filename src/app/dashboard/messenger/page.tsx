@@ -18,8 +18,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { sendSecureMessage, SendSecureMessageInput } from '@/ai/flows/send-secure-message';
+import { textToSpeech } from '@/ai/flows/text-to-speech';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, Volume2 } from 'lucide-react';
 import { AnimatedPage } from '@/components/AnimatedPage';
 
 // Schema for Direct Messages
@@ -32,6 +33,12 @@ const dmFormSchema = z.object({
 const clanFormSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
 });
+
+type ResultState = {
+    success: boolean;
+    message: string;
+    audioDataUri?: string;
+};
 
 function MessageHistory() {
   const {
@@ -126,7 +133,7 @@ function MessageHistory() {
 
 export default function MessengerPage() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -140,10 +147,27 @@ export default function MessengerPage() {
     defaultValues: { message: '' },
   });
 
-  async function handleSendMessage(values: { message: string, toUserId?: string }) {
+  async function handleSendMessage(values: { message: string, toUserId?: string }, asVoice = false) {
     setLoading(true);
     setError(null);
     setResult(null);
+
+    if (asVoice) {
+        try {
+            const response = await textToSpeech({ text: values.message });
+            setResult({
+                success: true,
+                message: 'Voice message generated successfully. You can play it below.',
+                audioDataUri: response.audioDataUri,
+            });
+        } catch(e) {
+            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred during TTS.';
+            setError(errorMessage);
+        } finally {
+            setLoading(false);
+        }
+        return;
+    }
 
     const input: SendSecureMessageInput = {
       message: values.message,
@@ -160,7 +184,6 @@ export default function MessengerPage() {
         dmForm.reset();
         clanForm.reset();
         if (!values.toUserId) {
-            // If it was a clan message, refetch the history to show the new message
             await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
         }
       } else {
@@ -192,7 +215,7 @@ export default function MessengerPage() {
               <CardContent className="space-y-4">
                 <MessageHistory />
                 <Form {...clanForm}>
-                  <form onSubmit={clanForm.handleSubmit(handleSendMessage)} className="space-y-4">
+                  <form onSubmit={clanForm.handleSubmit((values) => handleSendMessage(values, false))} className="space-y-4">
                     <FormField
                       control={clanForm.control}
                       name="message"
@@ -206,10 +229,16 @@ export default function MessengerPage() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? <Loader2 className="animate-spin" /> : <Send />}
-                      <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button type="submit" className="flex-1" disabled={loading}>
+                          {loading ? <Loader2 className="animate-spin" /> : <Send />}
+                          <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
+                        </Button>
+                        <Button type="button" variant="outline" className="flex-1" disabled={loading} onClick={clanForm.handleSubmit((values) => handleSendMessage(values, true))}>
+                            {loading ? <Loader2 className="animate-spin" /> : <Volume2 />}
+                            <span>{loading ? 'Generating...' : 'Send as Voice'}</span>
+                        </Button>
+                    </div>
                   </form>
                 </Form>
               </CardContent>
@@ -224,7 +253,7 @@ export default function MessengerPage() {
               </CardHeader>
               <CardContent>
                 <Form {...dmForm}>
-                  <form onSubmit={dmForm.handleSubmit(handleSendMessage)} className="space-y-4">
+                  <form onSubmit={dmForm.handleSubmit((values) => handleSendMessage(values, false))} className="space-y-4">
                     <FormField
                       control={dmForm.control}
                       name="toUserId"
@@ -251,10 +280,16 @@ export default function MessengerPage() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? <Loader2 className="animate-spin" /> : <Send />}
-                      <span>{loading ? 'Sending...' : 'Send Direct Message'}</span>
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button type="submit" className="flex-1" disabled={loading}>
+                          {loading ? <Loader2 className="animate-spin" /> : <Send />}
+                          <span>{loading ? 'Sending...' : 'Send Direct Message'}</span>
+                        </Button>
+                        <Button type="button" variant="outline" className="flex-1" disabled={loading} onClick={dmForm.handleSubmit((values) => handleSendMessage(values, true))}>
+                            {loading ? <Loader2 className="animate-spin" /> : <Volume2 />}
+                            <span>{loading ? 'Generating...' : 'Send as Voice'}</span>
+                        </Button>
+                    </div>
                   </form>
                 </Form>
               </CardContent>
@@ -264,7 +299,7 @@ export default function MessengerPage() {
 
         {error && (
           <Alert variant="destructive" className="mt-4">
-            <AlertTitle>Sending Failed</AlertTitle>
+            <AlertTitle>Action Failed</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
@@ -273,6 +308,13 @@ export default function MessengerPage() {
           <Alert variant="default" className="mt-4">
             <AlertTitle>Success</AlertTitle>
             <AlertDescription>{result.message}</AlertDescription>
+            {result.audioDataUri && (
+                <div className="mt-2">
+                    <audio controls src={result.audioDataUri}>
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+            )}
           </Alert>
         )}
       </div>
