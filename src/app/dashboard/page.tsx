@@ -6,6 +6,7 @@ import { ConquistadorDashboard } from "@/components/dashboard/rank-specific/conq
 import { ErranteDashboard } from "@/components/dashboard/rank-specific/errante-dashboard";
 import { ScoutDashboard } from "@/components/dashboard/rank-specific/scout-dashboard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AnimatedPage } from "@/components/AnimatedPage";
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -38,8 +39,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="animate-in fade-in-50">
+    <AnimatedPage>
         {renderDashboard()}
-    </div>
+    </AnimatedPage>
   );
 }
