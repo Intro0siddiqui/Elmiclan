@@ -15,12 +15,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage, SendSecureMessageInput } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus } from 'lucide-react';
 import { AnimatedPage } from '@/components/AnimatedPage';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank } from '@/lib/types';
@@ -144,6 +144,77 @@ function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
   );
 }
 
+const MOCK_CONVERSATIONS = [
+  {
+    id: 'convo-1',
+    partnerName: 'Sam Scout',
+    partnerMatrixId: '@scout:matrix.org',
+    lastMessage: 'Hey, I found something interesting near the Crystal Caves. Let me know when you are online.',
+    timestamp: '2h ago',
+    avatar: 'https://placehold.co/100x100.png',
+    dataAiHint: 'avatar person',
+  },
+  {
+    id: 'convo-2',
+    partnerName: 'Ada Admin',
+    partnerMatrixId: '@admin:matrix.org',
+    lastMessage: 'Your last report was very detailed. Good work. Keep it up and you might be next in line for a promotion.',
+    timestamp: '1d ago',
+    avatar: 'https://placehold.co/100x100.png',
+    dataAiHint: 'avatar person',
+  },
+   {
+    id: 'convo-3',
+    partnerName: 'Chris Conq',
+    partnerMatrixId: '@conquistador:matrix.org',
+    lastMessage: 'We need to plan the next campaign. Are you available for a strategy session tomorrow?',
+    timestamp: '3d ago',
+    avatar: 'https://placehold.co/100x100.png',
+    dataAiHint: 'avatar person',
+  }
+];
+
+function ConversationList() {
+    // In a real app, you would use useQuery to fetch this data
+  const conversations = MOCK_CONVERSATIONS;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                <CardTitle>Conversations</CardTitle>
+            </div>
+            <Button variant="outline" size="sm">
+                <MessageSquarePlus className="mr-2 h-4 w-4"/>
+                New Chat
+            </Button>
+        </div>
+        <CardDescription>Your recent direct message history.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {conversations.map((convo) => (
+            <div key={convo.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary cursor-pointer transition-colors">
+                <Avatar className="h-12 w-12 border-2 border-primary">
+                    <AvatarImage src={convo.avatar} alt={convo.partnerName} data-ai-hint={convo.dataAiHint} />
+                    <AvatarFallback>{convo.partnerName.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-grow overflow-hidden">
+                    <div className="flex justify-between items-center">
+                        <p className="font-semibold truncate">{convo.partnerName}</p>
+                        <p className="text-xs text-muted-foreground">{convo.timestamp}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">{convo.lastMessage}</p>
+                </div>
+            </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+
 function PartnerFinder({
   currentUserRank,
   currentUserEmail,
@@ -215,6 +286,7 @@ export default function MessengerPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPartnerFinder, setShowPartnerFinder] = useState(false);
   const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof messageFormSchema>>({
@@ -224,6 +296,7 @@ export default function MessengerPage() {
 
   const handleSelectPartner = (matrixId: string) => {
     form.setValue('toUserId', matrixId);
+    setShowPartnerFinder(false); // Hide finder and show the form
   };
 
   async function handleSendMessage(values: z.infer<typeof messageFormSchema>) {
@@ -268,84 +341,78 @@ export default function MessengerPage() {
 
   if (!user) return null;
 
+  const renderDmContent = () => {
+    if (showPartnerFinder) {
+        return <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} />;
+    }
+    return (
+        <>
+            <ConversationList/>
+        </>
+    );
+  };
+
   return (
     <AnimatedPage>
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+       {mode === 'clan' && (
         <Card>
-          <CardHeader>
-            <CardTitle>{mode === 'clan' ? 'Clan Chat' : 'Direct Message'}</CardTitle>
-            <CardDescription>
-              {mode === 'clan'
-                ? 'Communicate with all clan members in the main chat room.'
-                : 'Send a private, end-to-end encrypted message.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
-                {mode === 'dm' && (
-                  <FormField
-                    control={form.control}
-                    name="toUserId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Recipient Matrix ID</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Select a partner from the list below or paste an ID" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                <FormField
-                  control={form.control}
-                  name="message"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Your Message</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder={mode === 'clan' ? 'Type your message to the clan here...' : 'Type your private message here...'}
-                          {...field}
+            <CardHeader>
+                <CardTitle>Clan Chat</CardTitle>
+                <CardDescription>Communicate with all clan members in the main chat room.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
+                        <FormField
+                        control={form.control}
+                        name="message"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Your Message</FormLabel>
+                            <FormControl>
+                                <Textarea
+                                placeholder='Type your message to the clan here...'
+                                {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {mode === 'clan' && user.rank !== 'Errante' && (
-                   <FormField
-                    control={form.control}
-                    name="rankRestricted"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                            Visible to my rank and above only
-                          </FormLabel>
-                           <FormDescription>
-                            If checked, this message will be hidden from members with a lower rank than you.
-                           </FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                )}
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? <Loader2 className="animate-spin" /> : <Send />}
-                  <span>{loading ? 'Sending...' : mode === 'clan' ? 'Send to Clan Chat' : 'Send Direct Message'}</span>
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
+                        {user.rank !== 'Errante' && (
+                        <FormField
+                            control={form.control}
+                            name="rankRestricted"
+                            render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                <FormControl>
+                                <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                <FormLabel>
+                                    Visible to my rank and above only
+                                </FormLabel>
+                                <FormDescription>
+                                    If checked, this message will be hidden from members with a lower rank than you.
+                                </FormDescription>
+                                </div>
+                            </FormItem>
+                            )}
+                        />
+                        )}
+                        <Button type="submit" className="w-full" disabled={loading}>
+                        {loading ? <Loader2 className="animate-spin" /> : <Send />}
+                        <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
         </Card>
+       )}
 
         {error && (
           <Alert variant="destructive" className="mt-4">
@@ -364,7 +431,7 @@ export default function MessengerPage() {
         {mode === 'clan' ? (
           <MessageHistory currentUserRank={user.rank} />
         ) : (
-          <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} />
+          renderDmContent()
         )}
       </div>
     </AnimatedPage>
