@@ -31,38 +31,42 @@ export type SendSecureMessageOutput = z.infer<typeof SendSecureMessageOutputSche
 
 let matrixClient: sdk.MatrixClient | null = null;
 
-async function getMatrixClient() {
-    if (matrixClient) {
-        // Ensure the client is started and crypto is initialized
-        if (!matrixClient.isCryptoEnabled()) {
-            await matrixClient.initCrypto();
-        }
-        if (!matrixClient.isClientRunning()) {
-            await matrixClient.startClient({ initialSyncLimit: 10 });
-        }
-        return matrixClient;
-    }
-
-    const client = sdk.createClient({
-        baseUrl: MATRIX_HOMESERVER,
-        accessToken: MATRIX_ACCESS_TOKEN,
-        userId: MATRIX_USER_ID,
-    });
-
-    await client.initCrypto();
-    await client.startClient({ initialSyncLimit: 10 });
-
-    // Wait for crypto to be ready
-    await new Promise<void>((resolve) => {
-        client.once('crypto.initialised' as any, (initialised) => {
-            if (initialised) {
-                resolve();
-            }
-        });
-    });
-
-    matrixClient = client;
+async function getMatrixClient(): Promise<sdk.MatrixClient> {
+  if (matrixClient && matrixClient.isClientRunning()) {
     return matrixClient;
+  }
+
+  // If the client exists but isn't running, stop it before creating a new one.
+  if (matrixClient) {
+      matrixClient.stopClient();
+  }
+  
+  console.log('No running client found. Initializing new Matrix client...');
+  const newClient = sdk.createClient({
+    baseUrl: MATRIX_HOMESERVER,
+    accessToken: MATRIX_ACCESS_TOKEN,
+    userId: MATRIX_USER_ID,
+  });
+
+  await newClient.initCrypto();
+  
+  // Use a promise to wait for the 'sync' event, which indicates the client is ready.
+  await new Promise<void>((resolve, reject) => {
+    newClient.once('sync' as any, (state, prevState, res) => {
+      if (state === 'PREPARED') {
+        console.log('Matrix client synced and ready.');
+        resolve();
+      } else if (state === 'ERROR') {
+        console.error('Matrix client sync error:', res);
+        reject(new Error('Failed to sync with Matrix homeserver.'));
+      }
+    });
+    
+    newClient.startClient({ initialSyncLimit: 10 });
+  });
+
+  matrixClient = newClient;
+  return matrixClient;
 }
 
 
@@ -88,7 +92,8 @@ const sendSecureMessageFlow = ai.defineFlow(
         const rooms = mx.getRooms();
         let room = rooms.find(r => {
             const memberIds = r.getInvitedAndJoinedMemberIds();
-            return memberIds.length === 2 && memberIds.includes(toUserId) && memberIds.includes(MATRIX_USER_ID);
+            const isDirect = r.isDirect();
+            return isDirect && memberIds.length === 2 && memberIds.includes(toUserId) && memberIds.includes(MATRIX_USER_ID);
         });
 
         let roomId = room?.roomId;
@@ -113,10 +118,14 @@ const sendSecureMessageFlow = ai.defineFlow(
         } else {
             console.log(`Found existing room ${roomId} with ${toUserId}.`);
         }
-
-        // 2. Wait until the room is ready for encryption
-        await mx.waitForRoomToBeEncrypted(roomId, { timeout: 10000 });
-        console.log(`Room ${roomId} is encrypted.`);
+        
+        // Ensure the room is encrypted before sending
+        if (!mx.isRoomEncrypted(roomId)) {
+             console.log(`Room ${roomId} not encrypted. Waiting for encryption...`);
+             await mx.waitForRoomToBeEncrypted(roomId, { timeout: 10000 });
+        }
+       
+        console.log(`Room ${roomId} is encrypted. Sending message.`);
 
         // 3. Send the message
         await mx.sendTextMessage(roomId, message);
@@ -128,8 +137,9 @@ const sendSecureMessageFlow = ai.defineFlow(
         // If client is running, stop it to clean up for next attempt
         if (matrixClient && matrixClient.isClientRunning()) {
             matrixClient.stopClient();
-            matrixClient = null;
         }
+        // Nullify the client so a fresh one is created on next attempt
+        matrixClient = null; 
         return { success: false, error: e.message || 'An unknown error occurred.' };
     }
   }
