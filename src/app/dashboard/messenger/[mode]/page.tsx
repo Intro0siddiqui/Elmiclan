@@ -28,7 +28,6 @@ import { rankHierarchy } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { AnimatedPage } from '@/components/AnimatedPage';
 
-
 const clanMessageFormSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
   rankRestricted: z.boolean().optional().default(false),
@@ -39,23 +38,20 @@ const directMessageFormSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
 });
 
-// #region Message History Component
+// #region Clan Chat Components
 function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
-  const { data, error, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery<FetchMessagesOutput>({
-    queryKey: ['clanMessages', currentUserRank],
-    queryFn: ({ pageParam }) =>
-      fetchMessages({
-        from: pageParam as string | undefined,
-        requestingUserRank: currentUserRank,
-      }),
-    getNextPageParam: lastPage => lastPage.nextFrom,
-    initialPageParam: undefined,
-  });
+    const { data, error, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery<FetchMessagesOutput>({
+        queryKey: ['clanMessages', currentUserRank],
+        queryFn: ({ pageParam }) => fetchMessages({ from: pageParam as string | undefined, requestingUserRank: currentUserRank }),
+        getNextPageParam: lastPage => lastPage.nextFrom,
+        initialPageParam: undefined,
+        refetchInterval: 5000, // Refetch every 5 seconds
+    });
 
-  const scrollRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Scroll to bottom on initial load and when new messages are added
     if (scrollViewportRef.current) {
         scrollViewportRef.current.scrollTop = scrollViewportRef.current.scrollHeight;
     }
@@ -83,58 +79,55 @@ function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
   const allMessages = data.pages.flatMap(page => page.messages).reverse();
 
   return (
-    <div className="flex flex-col h-[60vh] gap-4">
-      <ScrollArea className="flex-grow p-4 border rounded-lg bg-black" ref={scrollRef}>
-        <div data-radix-scroll-area-viewport ref={scrollViewportRef} className="h-full">
-            <div className="flex justify-center my-2">
-            {hasNextPage && (
-                <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-                {isFetchingNextPage ? (
-                    <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Loading...
-                    </>
-                ) : (
-                    'Load More Messages'
-                )}
-                </Button>
-            )}
-            </div>
-            <div className="flex flex-col-reverse gap-4 font-mono text-white">
-            {allMessages.map(msg => {
-                if (msg.type === 'event') {
-                return (
-                    <div key={msg.id} className="flex items-center gap-2 text-sm text-gray-400">
-                    <span>►►</span>
-                    <span>{msg.content}</span>
-                    </div>
-                );
-                }
-                return (
-                <div key={msg.id} className="flex items-start gap-3">
-                    <div className="flex flex-col items-center gap-1">
-                    <Avatar className="h-10 w-10 border-2 border-gray-500">
-                        <AvatarFallback className="bg-blue-800 text-white text-xl">参</AvatarFallback>
-                    </Avatar>
-                    <span className="text-xs text-gray-300">{msg.sender.split(':')[0].replace('@', '')}</span>
-                    </div>
-                    <div className="pt-2">
-                        <div className="relative inline-block bg-gradient-to-b from-blue-600 to-blue-800 text-white rounded-lg px-4 py-2 shadow-md border border-blue-400">
-                            {msg.content}
-                        </div>
-                    </div>
-                </div>
-                );
-            })}
-            </div>
-        </div>
-      </ScrollArea>
-    </div>
+    <Card className='h-[60vh] flex flex-col'>
+      <CardHeader>
+        <CardTitle>Live Clan Feed</CardTitle>
+        <CardDescription>Messages from the main clan chat room.</CardDescription>
+      </CardHeader>
+      <CardContent className='flex-grow overflow-hidden'>
+        <ScrollArea className="h-full p-4 border rounded-lg bg-black/50">
+          <div data-radix-scroll-area-viewport ref={scrollViewportRef} className="h-full">
+              <div className="flex justify-center my-2">
+              {hasNextPage && (
+                  <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                  {isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading...</> : 'Load More Messages'}
+                  </Button>
+              )}
+              </div>
+              <div className="flex flex-col-reverse gap-4 font-mono text-white">
+              {allMessages.map(msg => {
+                  if (msg.type === 'event') {
+                  return (
+                      <div key={msg.id} className="flex items-center gap-2 text-sm text-gray-400">
+                      <span>►►</span>
+                      <span>{msg.content}</span>
+                      </div>
+                  );
+                  }
+                  return (
+                  <div key={msg.id} className="flex items-start gap-3">
+                      <div className="flex flex-col items-center gap-1">
+                      <Avatar className="h-10 w-10 border-2 border-gray-500">
+                          <AvatarFallback className="bg-blue-800 text-white text-xl">参</AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-gray-300">{msg.sender.split(':')[0].replace('@', '')}</span>
+                      </div>
+                      <div className="pt-2">
+                          <div className="relative inline-block bg-gradient-to-b from-blue-600 to-blue-800 text-white rounded-lg px-4 py-2 shadow-md border border-blue-400">
+                              {msg.content}
+                          </div>
+                      </div>
+                  </div>
+                  );
+              })}
+              </div>
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 }
-// #endregion
 
-// #region Clan Message Form Component
 function ClanMessageForm({ userRank }: { userRank: Rank }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -150,11 +143,7 @@ function ClanMessageForm({ userRank }: { userRank: Rank }) {
         setError(null);
         
         try {
-            const response = await sendSecureMessage({
-                message: values.message,
-                toUserId: undefined,
-                rankRestricted: values.rankRestricted,
-            });
+            const response = await sendSecureMessage({ message: values.message, toUserId: undefined, rankRestricted: values.rankRestricted });
             if (response.success) {
                 form.reset();
                 await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
@@ -172,43 +161,32 @@ function ClanMessageForm({ userRank }: { userRank: Rank }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Clan Chat</CardTitle>
-                <CardDescription>Communicate with all clan members in the main chat room.</CardDescription>
+                <CardTitle>Send to Clan</CardTitle>
+                <CardDescription>Broadcast a message to the entire clan.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleSendClanMessage)} className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="message"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Your Message</FormLabel>
-                                    <FormControl>
-                                        <Textarea placeholder='Type your message to the clan here...' {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <FormField control={form.control} name="message" render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                    <Textarea placeholder='Type your message to the clan here...' {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
                         {userRank !== 'Errante' && (
-                            <FormField
-                                control={form.control}
-                                name="rankRestricted"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                        <FormControl>
-                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                        </FormControl>
-                                        <div className="space-y-1 leading-none">
-                                            <FormLabel>Visible to my rank and above only</FormLabel>
-                                            <FormDescription>
-                                                If checked, this message will be hidden from members with a lower rank than you.
-                                            </FormDescription>
-                                        </div>
-                                    </FormItem>
-                                )}
-                            />
+                            <FormField control={form.control} name="rankRestricted" render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                    <FormControl>
+                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel>Visible to my rank and above only</FormLabel>
+                                        <FormDescription>If checked, this message will be hidden from members with a lower rank than you.</FormDescription>
+                                    </div>
+                                </FormItem>
+                            )} />
                         )}
                         {error && (
                             <Alert variant="destructive">
@@ -229,35 +207,10 @@ function ClanMessageForm({ userRank }: { userRank: Rank }) {
 // #endregion
 
 // #region Direct Message Components
-
 const MOCK_CONVERSATIONS = [
-  {
-    id: 'convo-1',
-    partnerName: 'Sam Scout',
-    partnerMatrixId: '@scout:matrix.org',
-    lastMessage: 'Hey, I found something interesting near the Crystal Caves. Let me know when you are online because I might need some help with it.',
-    timestamp: '2h ago',
-    avatar: 'https://placehold.co/100x100.png',
-    dataAiHint: 'avatar person',
-  },
-  {
-    id: 'convo-2',
-    partnerName: 'Ada Admin',
-    partnerMatrixId: '@admin:matrix.org',
-    lastMessage: 'Your last report was very detailed. Good work. Keep it up and you might be next in line for a promotion.',
-    timestamp: '1d ago',
-    avatar: 'https://placehold.co/100x100.png',
-    dataAiHint: 'avatar person',
-  },
-   {
-    id: 'convo-3',
-    partnerName: 'Chris Conq',
-    partnerMatrixId: '@conquistador:matrix.org',
-    lastMessage: 'We need to plan the next campaign. Are you available for a strategy session tomorrow?',
-    timestamp: '3d ago',
-    avatar: 'https://placehold.co/100x100.png',
-    dataAiHint: 'avatar person',
-  }
+  { id: 'convo-1', partnerName: 'Sam Scout', partnerMatrixId: '@scout:matrix.org', lastMessage: 'Hey, I found something interesting near the Crystal Caves. Let me know when you are online because I might need some help with it.', timestamp: '2h ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' },
+  { id: 'convo-2', partnerName: 'Ada Admin', partnerMatrixId: '@admin:matrix.org', lastMessage: 'Your last report was very detailed. Good work. Keep it up and you might be next in line for a promotion.', timestamp: '1d ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' },
+  { id: 'convo-3', partnerName: 'Chris Conq', partnerMatrixId: '@conquistador:matrix.org', lastMessage: 'We need to plan the next campaign. Are you available for a strategy session tomorrow?', timestamp: '3d ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' }
 ];
 
 function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () => void; onSelectConversation: (partnerId: string) => void }) {
@@ -302,17 +255,7 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
   );
 }
 
-function PartnerFinder({
-  currentUserRank,
-  currentUserEmail,
-  onSelectPartner,
-  onBack,
-}: {
-  currentUserRank: Rank;
-  currentUserEmail: string;
-  onSelectPartner: (matrixId: string) => void;
-  onBack: () => void;
-}) {
+function PartnerFinder({ currentUserRank, currentUserEmail, onSelectPartner, onBack }: { currentUserRank: Rank; currentUserEmail: string; onSelectPartner: (matrixId: string) => void; onBack: () => void; }) {
   const potentialPartners = Object.entries(MOCK_USERS)
     .map(([email, user]) => ({ email, ...(user as Omit<User, 'email'>) }))
     .filter(user => {
@@ -347,14 +290,10 @@ function PartnerFinder({
               return (
                 <div key={user.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
                   <div>
-                    <p className="font-semibold">
-                      {user.name} ({user.rank})
-                    </p>
+                    <p className="font-semibold">{user.name} ({user.rank})</p>
                     <p className="text-xs text-muted-foreground">{userMatrixId}</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => onSelectPartner(userMatrixId)}>
-                    Select
-                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => onSelectPartner(userMatrixId)}>Select</Button>
                 </div>
               );
             })
@@ -385,10 +324,7 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
     setError(null);
 
     try {
-      const response = await sendSecureMessage({
-        message: values.message,
-        toUserId: values.toUserId,
-      });
+      const response = await sendSecureMessage({ message: values.message, toUserId: values.toUserId });
       if (response.success) {
         onMessageSent();
       } else {
@@ -407,7 +343,7 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
         <CardHeader>
             <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="mr-2 h-8 w-8" onClick={onBack}>
-                        <ArrowLeft />
+                    <ArrowLeft />
                 </Button>
                 <CardTitle>Send Direct Message</CardTitle>
             </div>
@@ -416,32 +352,20 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
         <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="toUserId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Recipient Matrix ID</FormLabel>
-                                <FormControl>
-                                    <Input {...field} readOnly />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="message"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Your Message</FormLabel>
-                                <FormControl>
-                                    <Textarea placeholder="Type your direct message..." {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <FormField control={form.control} name="toUserId" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Recipient Matrix ID</FormLabel>
+                            <FormControl><Input {...field} readOnly /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="message" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Your Message</FormLabel>
+                            <FormControl><Textarea placeholder="Type your direct message..." {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
                     {error && (
                         <Alert variant="destructive" className="mt-4">
                             <AlertTitle>Action Failed</AlertTitle>
@@ -472,7 +396,6 @@ export default function MessengerPage() {
   const mode = params.mode as string;
 
   useEffect(() => {
-    // Reset view when switching modes between clan/dm
     setDmView('list');
     setSelectedPartner('');
   }, [mode]);
@@ -498,7 +421,7 @@ export default function MessengerPage() {
   
   const handleNewChat = () => {
     setDmView('new');
-  }
+  };
 
   const renderDmContent = () => {
     switch (dmView) {
@@ -521,11 +444,8 @@ export default function MessengerPage() {
           <MessageHistory currentUserRank={user.rank} />
         </>
        )}
-
        {mode === 'dm' && renderDmContent()}
       </div>
     </AnimatedPage>
   );
 }
-
-    
