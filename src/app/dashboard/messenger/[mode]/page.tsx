@@ -23,7 +23,7 @@ import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
 import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
-import type { Rank } from '@/lib/types';
+import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { AnimatedPage } from '@/components/AnimatedPage';
@@ -57,7 +57,6 @@ function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
 
   useEffect(() => {
     if (scrollViewportRef.current) {
-        // Auto-scroll to bottom on new messages
         scrollViewportRef.current.scrollTop = scrollViewportRef.current.scrollHeight;
     }
   }, [data?.pages.length, data?.pages[0]?.messages.length]);
@@ -277,17 +276,22 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
         </div>
         <CardDescription>Your recent direct message history.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-1">
         {MOCK_CONVERSATIONS.map((convo) => (
-            <div key={convo.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary cursor-pointer transition-colors" onClick={() => onSelectConversation(convo.partnerMatrixId)}>
+            <div 
+              key={convo.id} 
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer transition-colors" 
+              onClick={() => onSelectConversation(convo.partnerMatrixId)}
+            >
                 <Avatar className="h-12 w-12 border-2 border-primary shrink-0">
                     <AvatarImage src={convo.avatar} alt={convo.partnerName} data-ai-hint={convo.dataAiHint} />
                     <AvatarFallback>{convo.partnerName.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <div className="flex-grow overflow-hidden">
+                {/* This is the key fix: min-w-0 allows the flex item to shrink and the text to truncate */}
+                <div className="flex-grow min-w-0">
                     <div className="flex justify-between items-center">
                         <p className="font-semibold truncate">{convo.partnerName}</p>
-                        <p className="text-xs text-muted-foreground shrink-0">{convo.timestamp}</p>
+                        <p className="text-xs text-muted-foreground shrink-0 ml-2">{convo.timestamp}</p>
                     </div>
                     <p className="text-sm text-muted-foreground truncate">{convo.lastMessage}</p>
                 </div>
@@ -310,7 +314,7 @@ function PartnerFinder({
   onBack: () => void;
 }) {
   const potentialPartners = Object.entries(MOCK_USERS)
-    .map(([email, user]) => ({ email, ...user }))
+    .map(([email, user]) => ({ email, ...(user as Omit<User, 'email'>) }))
     .filter(user => {
       if (user.email === currentUserEmail) return false;
       if (user.rank === 'Admin') return true;
@@ -467,6 +471,12 @@ export default function MessengerPage() {
 
   const mode = params.mode as string;
 
+  useEffect(() => {
+    // Reset view when switching modes between clan/dm
+    setDmView('list');
+    setSelectedPartner('');
+  }, [mode]);
+
   if (!user) {
     return (
         <div className="w-full space-y-4">
@@ -485,6 +495,10 @@ export default function MessengerPage() {
     setSelectedPartner('');
     setDmView('list');
   };
+  
+  const handleNewChat = () => {
+    setDmView('new');
+  }
 
   const renderDmContent = () => {
     switch (dmView) {
@@ -494,7 +508,7 @@ export default function MessengerPage() {
             return <DirectMessageForm toUserId={selectedPartner} onBack={handleBackToList} onMessageSent={handleBackToList} />;
         case 'list':
         default:
-            return <ConversationList onNewChat={() => setDmView('new')} onSelectConversation={handleSelectPartner}/>;
+            return <ConversationList onNewChat={handleNewChat} onSelectConversation={handleSelectPartner}/>;
     }
   };
 
@@ -513,3 +527,5 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
+
+    
