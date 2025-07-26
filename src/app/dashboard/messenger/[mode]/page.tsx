@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useRef, useEffect, forwardRef, useId } from 'react';
-import { useForm, FormProvider, Controller } from 'react-hook-form';
+import { useState, useRef, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,44 +19,27 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
-import { sendSecureMessage, SendSecureMessageInput } from '@/ai/flows/send-secure-message';
+import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
 import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft } from 'lucide-react';
-import { AnimatedPage } from '@/components/AnimatedPage';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank } from '@/lib/types';
-import { Label } from '@/components/ui/label';
 import { rankHierarchy } from '@/lib/types';
+import { Label } from '@/components/ui/label';
+import { AnimatedPage } from '@/components/AnimatedPage';
 
-// Main form schema
-const messageFormSchema = z.object({
-  toUserId: z.string().optional(),
+
+const clanMessageFormSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
   rankRestricted: z.boolean().optional().default(false),
 });
 
-type ResultState = {
-  success: boolean;
-  message: string;
-};
+const directMessageFormSchema = z.object({
+  toUserId: z.string(),
+  message: z.string().min(1, 'Message cannot be empty.'),
+});
 
-// #region Message History Components
-function MessageBubble({ text }: { text: string }) {
-  return (
-    <div className="relative inline-block bg-gradient-to-b from-blue-600 to-blue-800 text-white rounded-lg px-4 py-2 shadow-md border border-blue-400">
-      <div
-        className="absolute left-[-10px] top-1/2 -translate-y-1/2 w-0 h-0"
-        style={{
-          borderTop: '8px solid transparent',
-          borderBottom: '8px solid transparent',
-          borderRight: '10px solid #2563EB', // Corresponds to from-blue-600
-        }}
-      />
-      {text}
-    </div>
-  );
-}
-
+// #region Message History Component
 function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
   const { data, error, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery<FetchMessagesOutput>({
     queryKey: ['clanMessages', currentUserRank],
@@ -70,13 +53,14 @@ function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const scrollableNode = scrollRef.current?.querySelector('div[data-radix-scroll-area-viewport]');
-    if (scrollableNode) {
-      scrollableNode.scrollTop = scrollableNode.scrollHeight;
+    if (scrollViewportRef.current) {
+        // Auto-scroll to bottom on new messages
+        scrollViewportRef.current.scrollTop = scrollViewportRef.current.scrollHeight;
     }
-  }, [data?.pages.length]);
+  }, [data?.pages.length, data?.pages[0]?.messages.length]);
 
   if (status === 'pending') {
     return (
@@ -102,44 +86,48 @@ function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
   return (
     <div className="flex flex-col h-[60vh] gap-4">
       <ScrollArea className="flex-grow p-4 border rounded-lg bg-black" ref={scrollRef}>
-        <div className="flex justify-center my-2">
-          {hasNextPage && (
-            <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-              {isFetchingNextPage ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                'Load More Messages'
-              )}
-            </Button>
-          )}
-        </div>
-        <div className="flex flex-col-reverse gap-4 font-mono text-white">
-          {allMessages.map(msg => {
-            if (msg.type === 'event') {
-              return (
-                <div key={msg.id} className="flex items-center gap-2 text-sm text-gray-400">
-                  <span>►►</span>
-                  <span>{msg.content}</span>
+        <div data-radix-scroll-area-viewport ref={scrollViewportRef} className="h-full">
+            <div className="flex justify-center my-2">
+            {hasNextPage && (
+                <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                {isFetchingNextPage ? (
+                    <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                    </>
+                ) : (
+                    'Load More Messages'
+                )}
+                </Button>
+            )}
+            </div>
+            <div className="flex flex-col-reverse gap-4 font-mono text-white">
+            {allMessages.map(msg => {
+                if (msg.type === 'event') {
+                return (
+                    <div key={msg.id} className="flex items-center gap-2 text-sm text-gray-400">
+                    <span>►►</span>
+                    <span>{msg.content}</span>
+                    </div>
+                );
+                }
+                return (
+                <div key={msg.id} className="flex items-start gap-3">
+                    <div className="flex flex-col items-center gap-1">
+                    <Avatar className="h-10 w-10 border-2 border-gray-500">
+                        <AvatarFallback className="bg-blue-800 text-white text-xl">参</AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs text-gray-300">{msg.sender.split(':')[0].replace('@', '')}</span>
+                    </div>
+                    <div className="pt-2">
+                        <div className="relative inline-block bg-gradient-to-b from-blue-600 to-blue-800 text-white rounded-lg px-4 py-2 shadow-md border border-blue-400">
+                            {msg.content}
+                        </div>
+                    </div>
                 </div>
-              );
-            }
-            return (
-              <div key={msg.id} className="flex items-start gap-3">
-                <div className="flex flex-col items-center gap-1">
-                  <Avatar className="h-10 w-10 border-2 border-gray-500">
-                    <AvatarFallback className="bg-blue-800 text-white text-xl">参</AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs text-gray-300">{msg.sender.split(':')[0].replace('@', '')}</span>
-                </div>
-                <div className="pt-2">
-                  <MessageBubble text={msg.content} />
-                </div>
-              </div>
-            );
-          })}
+                );
+            })}
+            </div>
         </div>
       </ScrollArea>
     </div>
@@ -147,7 +135,102 @@ function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
 }
 // #endregion
 
+// #region Clan Message Form Component
+function ClanMessageForm({ userRank }: { userRank: Rank }) {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
+
+    const form = useForm<z.infer<typeof clanMessageFormSchema>>({
+        resolver: zodResolver(clanMessageFormSchema),
+        defaultValues: { message: '', rankRestricted: false },
+    });
+
+    async function handleSendClanMessage(values: z.infer<typeof clanMessageFormSchema>) {
+        setLoading(true);
+        setError(null);
+        
+        try {
+            const response = await sendSecureMessage({
+                message: values.message,
+                toUserId: undefined,
+                rankRestricted: values.rankRestricted,
+            });
+            if (response.success) {
+                form.reset();
+                await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
+            } else {
+                throw new Error(response.error || 'Failed to send message.');
+            }
+        } catch (e) {
+            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+            setError(errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Clan Chat</CardTitle>
+                <CardDescription>Communicate with all clan members in the main chat room.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleSendClanMessage)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="message"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Your Message</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder='Type your message to the clan here...' {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        {userRank !== 'Errante' && (
+                            <FormField
+                                control={form.control}
+                                name="rankRestricted"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormControl>
+                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                        </FormControl>
+                                        <div className="space-y-1 leading-none">
+                                            <FormLabel>Visible to my rank and above only</FormLabel>
+                                            <FormDescription>
+                                                If checked, this message will be hidden from members with a lower rank than you.
+                                            </FormDescription>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                        )}
+                        {error && (
+                            <Alert variant="destructive">
+                                <AlertTitle>Action Failed</AlertTitle>
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
+                        <Button type="submit" className="w-full" disabled={loading}>
+                            {loading ? <Loader2 className="animate-spin" /> : <Send />}
+                            <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    );
+}
+// #endregion
+
 // #region Direct Message Components
+
 const MOCK_CONVERSATIONS = [
   {
     id: 'convo-1',
@@ -212,7 +295,7 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
         ))}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function PartnerFinder({
@@ -229,7 +312,7 @@ function PartnerFinder({
   const potentialPartners = Object.entries(MOCK_USERS)
     .map(([email, user]) => ({ email, ...user }))
     .filter(user => {
-      if (user.email === currentUserEmail) return false; // Exclude self
+      if (user.email === currentUserEmail) return false;
       if (user.rank === 'Admin') return true;
       return rankHierarchy[user.rank] <= rankHierarchy[currentUserRank];
     });
@@ -281,30 +364,28 @@ function PartnerFinder({
 }
 
 function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: string; onBack: () => void; onMessageSent: () => void; }) {
-  const form = useForm<z.infer<typeof messageFormSchema>>({
-    resolver: zodResolver(messageFormSchema),
-    defaultValues: { toUserId: toUserId, message: '', rankRestricted: false },
+  const form = useForm<z.infer<typeof directMessageFormSchema>>({
+    resolver: zodResolver(directMessageFormSchema),
+    defaultValues: { toUserId: toUserId, message: '' },
   });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
 
-  async function handleSendMessage(values: z.infer<typeof messageFormSchema>) {
+  useEffect(() => {
+    form.setValue('toUserId', toUserId);
+  }, [toUserId, form]);
+
+  async function handleSendMessage(values: z.infer<typeof directMessageFormSchema>) {
     setLoading(true);
     setError(null);
 
-    const input: SendSecureMessageInput = {
-      message: values.message,
-      toUserId: values.toUserId,
-      rankRestricted: false,
-    };
-
     try {
-      const response = await sendSecureMessage(input);
+      const response = await sendSecureMessage({
+        message: values.message,
+        toUserId: values.toUserId,
+      });
       if (response.success) {
-        form.reset({ message: '', toUserId: values.toUserId, rankRestricted: false });
-        await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
         onMessageSent();
       } else {
         throw new Error(response.error || 'Failed to send message.');
@@ -318,18 +399,18 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
   }
     
   return (
-      <FormProvider {...form}>
-        <Card>
-            <CardHeader>
-                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="mr-2 h-8 w-8" onClick={onBack}>
-                            <ArrowLeft />
-                    </Button>
-                    <CardTitle>Send Direct Message</CardTitle>
-                </div>
-                <CardDescription>Your message to {toUserId} will be end-to-end encrypted.</CardDescription>
-            </CardHeader>
-            <CardContent>
+    <Card>
+        <CardHeader>
+            <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="mr-2 h-8 w-8" onClick={onBack}>
+                        <ArrowLeft />
+                </Button>
+                <CardTitle>Send Direct Message</CardTitle>
+            </div>
+            <CardDescription>Your message to {toUserId} will be end-to-end encrypted.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
                     <FormField
                         control={form.control}
@@ -368,10 +449,10 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
                         <span>{loading ? 'Sending...' : 'Send Direct Message'}</span>
                     </Button>
                 </form>
-            </CardContent>
-        </Card>
-      </FormProvider>
-    );
+            </Form>
+        </CardContent>
+    </Card>
+  );
 }
 // #endregion
 
@@ -381,27 +462,23 @@ export default function MessengerPage() {
   const params = useParams();
   const { user } = useAuth();
   
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ResultState | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [dmView, setDmView] = useState<DmView>('list');
   const [selectedPartner, setSelectedPartner] = useState<string>('');
 
-  const queryClient = useQueryClient();
   const mode = params.mode as string;
 
-  const clanForm = useForm<z.infer<typeof messageFormSchema>>({
-    resolver: zodResolver(messageFormSchema),
-    defaultValues: { toUserId: '', message: '', rankRestricted: false },
-  });
+  if (!user) {
+    return (
+        <div className="w-full space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-64 w-full" />
+        </div>
+    );
+  }
 
   const handleSelectPartner = (matrixId: string) => {
     setSelectedPartner(matrixId);
     setDmView('chat');
-  };
-
-  const handleNewChat = () => {
-    setDmView('new');
   };
 
   const handleBackToList = () => {
@@ -409,47 +486,15 @@ export default function MessengerPage() {
     setDmView('list');
   };
 
-  async function handleSendClanMessage(values: z.infer<typeof messageFormSchema>) {
-    setLoading(true);
-    setError(null);
-    setResult(null);
-
-    const input: SendSecureMessageInput = {
-      message: values.message,
-      toUserId: undefined,
-      rankRestricted: values.rankRestricted,
-    };
-
-    try {
-      const response = await sendSecureMessage(input);
-      if (response.success) {
-        setResult({ success: true, message: `Message sent successfully to the clan chat!` });
-        clanForm.reset({ message: '', toUserId: '', rankRestricted: false });
-        await queryClient.invalidateQueries({ queryKey: ['clanMessages'] });
-      } else {
-        throw new Error(response.error || 'Failed to send message.');
-      }
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (!user) return null;
-
   const renderDmContent = () => {
     switch (dmView) {
         case 'new':
             return <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} onBack={handleBackToList} />;
         case 'chat':
-            return (
-                <DirectMessageForm toUserId={selectedPartner} onBack={handleBackToList} onMessageSent={handleBackToList} />
-            );
+            return <DirectMessageForm toUserId={selectedPartner} onBack={handleBackToList} onMessageSent={handleBackToList} />;
         case 'list':
         default:
-            return <ConversationList onNewChat={handleNewChat} onSelectConversation={handleSelectPartner}/>;
+            return <ConversationList onNewChat={() => setDmView('new')} onSelectConversation={handleSelectPartner}/>;
     }
   };
 
@@ -458,85 +503,13 @@ export default function MessengerPage() {
       <div className="w-full space-y-6">
        {mode === 'clan' && (
         <>
-          <Card>
-            <CardHeader>
-                <CardTitle>Clan Chat</CardTitle>
-                <CardDescription>Communicate with all clan members in the main chat room.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...clanForm}>
-                    <form onSubmit={clanForm.handleSubmit(handleSendClanMessage)} className="space-y-4">
-                        <FormField
-                        control={clanForm.control}
-                        name="message"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Your Message</FormLabel>
-                            <FormControl>
-                                <Textarea
-                                placeholder='Type your message to the clan here...'
-                                {...field}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                        {user.rank !== 'Errante' && (
-                        <FormField
-                            control={clanForm.control}
-                            name="rankRestricted"
-                            render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                <FormControl>
-                                <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                <FormLabel>
-                                    Visible to my rank and above only
-                                </FormLabel>
-                                <FormDescription>
-                                    If checked, this message will be hidden from members with a lower rank than you.
-                                </FormDescription>
-                                </div>
-                            </FormItem>
-                            )}
-                        />
-                        )}
-                        <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? <Loader2 className="animate-spin" /> : <Send />}
-                        <span>{loading ? 'Sending...' : 'Send to Clan Chat'}</span>
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-          </Card>
-
-          {error && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertTitle>Action Failed</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {result && result.success && (
-            <Alert variant="default" className="mt-4">
-              <AlertTitle>Success</AlertTitle>
-              <AlertDescription>{result.message}</AlertDescription>
-            </Alert>
-          )}
-          
+          <ClanMessageForm userRank={user.rank} />
           <MessageHistory currentUserRank={user.rank} />
         </>
        )}
 
-        {mode === 'dm' && renderDmContent()}
+       {mode === 'dm' && renderDmContent()}
       </div>
     </AnimatedPage>
   );
 }
-
-    
