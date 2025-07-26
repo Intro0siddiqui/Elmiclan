@@ -16,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { VALID_INVITE_CODES } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
 import { ClientOnly } from '@/components/ui/client-only';
-import { validateInviteCode } from '@/ai/flows/validate-invite-code';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -39,9 +38,10 @@ export default function SignupPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const validation = await validateInviteCode({ inviteCode: values.inviteCode });
-      if (!validation.isValid) {
-        form.setError('inviteCode', { type: 'manual', message: validation.message });
+      // NOTE: This is an insecure, client-side validation for demo purposes.
+      // The real implementation uses the `validateInviteCode` Genkit flow.
+      if (!VALID_INVITE_CODES.includes(values.inviteCode.toUpperCase())) {
+        form.setError('inviteCode', { type: 'manual', message: 'Invalid invite code.' });
         setIsLoading(false);
         return;
       }
