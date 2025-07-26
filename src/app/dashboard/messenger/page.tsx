@@ -24,6 +24,7 @@ import { Loader2, Send, Users } from 'lucide-react';
 import { AnimatedPage } from '@/components/AnimatedPage';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank } from '@/lib/types';
+import { Label } from '@/components/ui/label';
 
 // Main form schema
 const messageFormSchema = z.object({
@@ -158,7 +159,7 @@ function PartnerFinder({ currentUserRank, currentUserEmail }: { currentUserRank:
             if (user.rank === 'Admin') return true; // Admins are always visible
             return user.rank === currentUserRank;
         });
-    const currentUserMatrixId = `${currentUserEmail.split('@')[0]}:matrix.org`;
+    const currentUserMatrixId = `@${currentUserEmail.split('@')[0]}:matrix.org`;
 
 
     return (
@@ -186,12 +187,12 @@ function PartnerFinder({ currentUserRank, currentUserEmail }: { currentUserRank:
                             <div key={user.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
                                 <div>
                                     <p className="font-semibold">{user.name} ({user.rank})</p>
-                                    <p className="text-xs text-muted-foreground">{`${user.email.split('@')[0]}:matrix.org`}</p>
+                                    <p className="text-xs text-muted-foreground">{`@${user.email.split('@')[0]}:matrix.org`}</p>
                                 </div>
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => navigator.clipboard.writeText(`${user.email.split('@')[0]}:matrix.org`)}
+                                    onClick={() => navigator.clipboard.writeText(`@${user.email.split('@')[0]}:matrix.org`)}
                                 >
                                     Copy ID
                                 </Button>
@@ -238,7 +239,7 @@ export default function MessengerPage() {
       const response = await sendSecureMessage(input);
       if (response.success) {
         const successMessage = mode === 'dm'
-          ? `Message sent successfully to ${values.toUserId}!`
+          ? `Message sent successfully!`
           : `Message sent successfully to the clan chat!`;
         setResult({ success: true, message: successMessage });
         form.reset({
@@ -344,6 +345,3 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
-
-
-    
