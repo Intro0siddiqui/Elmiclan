@@ -3,8 +3,8 @@
 /**
  * @fileOverview A flow for sending E2EE messages via the Matrix protocol.
  * This flow is designed to run on a secure server, protecting sensitive credentials.
- * It supports both sending to a specific user (creating a 1-to-1 DM) and sending
- * to a predefined group chat room.
+ * It supports sending to a specific user, to a group chat room, and allows for
+ * rank-restricted messages in the group chat.
  */
 
 import { ai } from '@/ai/genkit';
@@ -15,6 +15,7 @@ import { z } from 'genkit';
 const SendSecureMessageInputSchema = z.object({
   toUserId: z.string().optional().describe('The Matrix ID of the recipient for a direct message. If omitted, sends to the main clan chat.'),
   message: z.string().describe('The plain-text message to send.'),
+  rankRestricted: z.boolean().optional().default(false).describe('If true, the message in the clan chat will only be visible to users of the same rank or higher.'),
 });
 export type SendSecureMessageInput = z.infer<typeof SendSecureMessageInputSchema>;
 
@@ -30,6 +31,7 @@ export async function sendSecureMessage(input: SendSecureMessageInput): Promise<
   return sendSecureMessageFlow(input);
 }
 
+const RANK_RESTRICTED_PREFIX = '[RANK_RESTRICTED]';
 
 const sendSecureMessageFlow = ai.defineFlow(
   {
@@ -37,14 +39,11 @@ const sendSecureMessageFlow = ai.defineFlow(
     inputSchema: SendSecureMessageInputSchema,
     outputSchema: SendSecureMessageOutputSchema,
   },
-  async ({ toUserId, message }) => {
+  async ({ toUserId, message, rankRestricted }) => {
     let client: any = null;
     try {
-      // Dynamically import the SDK when the flow is invoked
       const sdk = await import('matrix-js-sdk');
 
-      // These are placeholder credentials for a public test account.
-      // In a real implementation, these would be fetched securely.
       const matrixUserId = process.env.MATRIX_USER_ID || '@elmiclan-bot:matrix.org';
       const matrixAccessToken = process.env.MATRIX_ACCESS_TOKEN || 'syt_ZWxtaWNsYW4tYm90_aVJhZGRpY2xlQnJvY2NvbGk_U3VwZXJTZWNyZXQ';
       const matrixBaseUrl = process.env.MATRIX_BASE_URL || 'https://matrix.org';
@@ -62,7 +61,6 @@ const sendSecureMessageFlow = ai.defineFlow(
       console.log('Starting client...');
       await client.startClient({ initialSyncLimit: 10 });
       
-      // Ensure the client is ready and synced
       await new Promise<void>((resolve) => {
         client.on('sync', (state: string) => {
           if (state === 'PREPARED') {
@@ -87,12 +85,10 @@ const sendSecureMessageFlow = ai.defineFlow(
         console.log(`Created DM room ${roomId} for ${toUserId}`);
       } else {
         // Logic for Unified Group Chat
-        // This is the hardcoded ID for the main clan chat room.
         const clanRoomId = process.env.MATRIX_CLAN_ROOM_ID || '!YourMainClanRoomID:matrix.org';
         roomId = clanRoomId;
         console.log(`Targeting unified clan chat room: ${roomId}`);
         
-        // Ensure the bot is a member of the clan room.
         const room = client.getRoom(clanRoomId);
         if (!room) {
             console.log(`Bot is not in room ${clanRoomId}. Attempting to join...`);
@@ -101,16 +97,20 @@ const sendSecureMessageFlow = ai.defineFlow(
         }
       }
 
-      // Wait for the room to be encrypted
       console.log(`Waiting for room ${roomId} to be encrypted...`);
       await client.waitForRoomToBeEncrypted(roomId);
       console.log('Room is encrypted.');
 
-      // Send the message
+      // Prepend a marker if the message is rank-restricted
+      const finalMessage = rankRestricted && !toUserId
+        ? `${RANK_RESTRICTED_PREFIX}${message}`
+        : message;
+
       const content = {
-        body: message,
+        body: finalMessage,
         msgtype: 'm.text',
       };
+
       console.log(`Sending message to room ${roomId}`);
       await client.sendMessage(roomId, content);
       console.log('Message sent successfully.');

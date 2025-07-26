@@ -1,7 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
 import { z } from 'zod';
 
-export type Rank = "Errante" | "Scout" | "Conquistador" | "Admin";
+export const Rank = z.enum(["Errante", "Scout", "Conquistador", "Admin"]);
+export type Rank = z.infer<typeof Rank>;
 
 export interface User {
   id: string;
