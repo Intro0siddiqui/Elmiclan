@@ -152,7 +152,15 @@ function MessageHistory() {
   );
 }
 
-function PartnerFinder({ currentUserRank, currentUserEmail }: { currentUserRank: Rank, currentUserEmail: string }) {
+function PartnerFinder({ 
+    currentUserRank, 
+    currentUserEmail,
+    onSelectPartner
+}: { 
+    currentUserRank: Rank, 
+    currentUserEmail: string,
+    onSelectPartner: (matrixId: string) => void;
+}) {
     const potentialPartners = Object.entries(MOCK_USERS)
         .map(([email, user]) => ({ email, ...user }))
         .filter(user => {
@@ -161,7 +169,6 @@ function PartnerFinder({ currentUserRank, currentUserEmail }: { currentUserRank:
             return user.rank === currentUserRank;
         });
     const currentUserMatrixId = `@${currentUserEmail.split('@')[0]}:matrix.org`;
-
 
     return (
         <Card>
@@ -180,25 +187,28 @@ function PartnerFinder({ currentUserRank, currentUserEmail }: { currentUserRank:
                     <Input id="your-id" readOnly value={currentUserMatrixId} />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                    You can send requests to members of your rank or to any Admin. Copy their ID to start a conversation.
+                    You can send requests to members of your rank or to any Admin. Select a user to start a conversation.
                 </p>
                 <div className="space-y-3">
                     {potentialPartners.length > 0 ? (
-                        potentialPartners.map(user => (
-                            <div key={user.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
-                                <div>
-                                    <p className="font-semibold">{user.name} ({user.rank})</p>
-                                    <p className="text-xs text-muted-foreground">{`@${user.email.split('@')[0]}:matrix.org`}</p>
+                        potentialPartners.map(user => {
+                            const userMatrixId = `@${user.email.split('@')[0]}:matrix.org`;
+                            return (
+                                <div key={user.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                                    <div>
+                                        <p className="font-semibold">{user.name} ({user.rank})</p>
+                                        <p className="text-xs text-muted-foreground">{userMatrixId}</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => onSelectPartner(userMatrixId)}
+                                    >
+                                        Select
+                                    </Button>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => navigator.clipboard.writeText(`@${user.email.split('@')[0]}:matrix.org`)}
-                                >
-                                    Copy ID
-                                </Button>
-                            </div>
-                        ))
+                            )
+                        })
                     ) : (
                         <p className="text-sm text-center text-muted-foreground">No available partners of your rank right now.</p>
                     )}
@@ -222,6 +232,10 @@ export default function MessengerPage() {
     resolver: zodResolver(messageFormSchema),
     defaultValues: { toUserId: '', message: '' },
   });
+  
+  const handleSelectPartner = (matrixId: string) => {
+    form.setValue('toUserId', matrixId);
+  };
 
   async function handleSendMessage(values: z.infer<typeof messageFormSchema>) {
     if (mode === 'dm' && !values.toUserId) {
@@ -286,7 +300,7 @@ export default function MessengerPage() {
                                 <FormItem>
                                 <FormLabel>Recipient Matrix ID</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="@username:matrix.org" {...field} />
+                                    <Input placeholder="Select a partner from the list below or paste an ID" {...field} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -332,7 +346,11 @@ export default function MessengerPage() {
         {mode === 'clan' ? (
              <MessageHistory />
         ) : (
-            <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} />
+            <PartnerFinder 
+                currentUserRank={user.rank} 
+                currentUserEmail={user.email}
+                onSelectPartner={handleSelectPartner}
+            />
         )}
 
       </div>
