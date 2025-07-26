@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, use } from 'react';
@@ -408,7 +407,7 @@ export default function MessengerPage() {
 
   if (!user) {
     return (
-        <div className="w-full space-y-4">
+        <div className="w-full p-4 md:p-6 space-y-4">
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-64 w-full" />
         </div>
@@ -443,7 +442,7 @@ export default function MessengerPage() {
 
   return (
     <AnimatedPage>
-      <div className="w-full space-y-6">
+      <div className="w-full p-4 md:p-6 space-y-6">
        {mode === 'clan' && (
         <>
           <ClanMessageForm userRank={user.rank} />

@@ -13,7 +13,7 @@ export default function DashboardPage() {
 
   if (loading || !user) {
     return (
-        <div className="space-y-4">
+        <div className="p-4 md:p-6 space-y-4">
             <Skeleton className="h-24 w-full" />
             <div className="grid grid-cols-2 gap-4">
                 <Skeleton className="h-32 w-full" />
@@ -40,7 +40,9 @@ export default function DashboardPage() {
 
   return (
     <AnimatedPage>
-        {renderDashboard()}
+        <div className="p-4 md:p-6">
+            {renderDashboard()}
+        </div>
     </AnimatedPage>
   );
 }
