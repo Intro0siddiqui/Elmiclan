@@ -8,7 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
-import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -208,10 +207,9 @@ function PartnerFinder({ currentUserRank, currentUserEmail }: { currentUserRank:
     )
 }
 
-export default function MessengerPage() {
+export default function MessengerPage({ params }: { params: { mode: string } }) {
   const { user } = useAuth();
-  const pathname = usePathname();
-  const mode = pathname.includes('/dm') ? 'dm' : 'clan';
+  const { mode } = params;
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
