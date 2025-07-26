@@ -9,6 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { MessageSchema } from '@/lib/types';
 // NOTE: To prevent server startup issues, the Matrix SDK is imported dynamically
 // inside the flow itself, not at the top level.
 
@@ -17,14 +18,6 @@ const FetchMessagesInputSchema = z.object({
   limit: z.number().optional().default(25).describe('The maximum number of events to return.'),
 });
 export type FetchMessagesInput = z.infer<typeof FetchMessagesInputSchema>;
-
-export const MessageSchema = z.object({
-    id: z.string(),
-    type: z.enum(['message', 'event']),
-    sender: z.string(),
-    content: z.string(),
-    timestamp: z.number(),
-});
 
 const FetchMessagesOutputSchema = z.object({
   messages: z.array(MessageSchema),

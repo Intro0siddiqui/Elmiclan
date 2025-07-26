@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { z } from 'zod';
 
 export type Rank = "Errante" | "Scout" | "Conquistador" | "Admin";
 
@@ -27,3 +28,11 @@ export const rankHierarchy: Record<Rank, number> = {
   "Conquistador": 3,
   "Admin": 4
 };
+
+export const MessageSchema = z.object({
+    id: z.string(),
+    type: z.enum(['message', 'event']),
+    sender: z.string(),
+    content: z.string(),
+    timestamp: z.number(),
+});
