@@ -15,11 +15,17 @@ export interface User {
   };
 }
 
-export interface NavItem {
+export interface SubNavItem {
   href: string;
+  label: string;
+}
+
+export interface NavItem {
+  href?: string;
   label: string;
   icon: LucideIcon;
   minRank: Rank;
+  subItems?: SubNavItem[];
 }
 
 export const rankHierarchy: Record<Rank, number> = {

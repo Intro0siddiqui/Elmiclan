@@ -17,9 +17,12 @@ export const NAV_ITEMS: NavItem[] = [
     minRank: 'Errante',
   },
   {
-    href: '/dashboard/messenger',
     label: 'Messenger',
     icon: MessageSquare,
     minRank: 'Errante',
+    subItems: [
+        { href: '/dashboard/messenger/clan', label: 'Clan Chat' },
+        { href: '/dashboard/messenger/dm', label: 'Direct Message' },
+    ]
   }
 ];

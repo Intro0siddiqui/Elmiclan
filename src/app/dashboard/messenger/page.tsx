@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
@@ -7,13 +8,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
+import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -209,7 +210,9 @@ function PartnerFinder({ currentUserRank, currentUserEmail }: { currentUserRank:
 
 export default function MessengerPage() {
   const { user } = useAuth();
-  const [mode, setMode] = useState<'clan' | 'dm'>('clan');
+  const pathname = usePathname();
+  const mode = pathname.includes('/dm') ? 'dm' : 'clan';
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -267,19 +270,10 @@ export default function MessengerPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         <Card>
             <CardHeader>
-                <CardTitle>ElmiClan Messenger</CardTitle>
-                <CardDescription>Select a mode to begin communicating.</CardDescription>
-                 <div className="pt-2">
-                    <Select onValueChange={(value) => setMode(value as 'clan' | 'dm')} defaultValue={mode}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a chat mode" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="clan">Clan Chat</SelectItem>
-                            <SelectItem value="dm">Direct Message</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                <CardTitle>{mode === 'clan' ? 'Clan Chat' : 'Direct Message'}</CardTitle>
+                <CardDescription>
+                    {mode === 'clan' ? 'Communicate with all clan members in the main chat room.' : 'Send a private, end-to-end encrypted message.'}
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  <Form {...form}>
