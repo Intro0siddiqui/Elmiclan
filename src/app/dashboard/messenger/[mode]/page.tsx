@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, use } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -205,7 +205,7 @@ function ClanMessageForm({ userRank }: { userRank: Rank }) {
 }
 // #endregion
 
-// #region Direct Message Components - REWRITTEN FOR RESPONSIVENESS
+// #region Direct Message Components
 const MOCK_CONVERSATIONS = [
   { id: 'convo-1', partnerName: 'Sam Scout', partnerMatrixId: '@scout:matrix.org', lastMessage: 'Hey, I found something interesting near the Crystal Caves. Let me know when you are online because I might need some help with it.', timestamp: '2h ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' },
   { id: 'convo-2', partnerName: 'Ada Admin', partnerMatrixId: '@admin:matrix.org', lastMessage: 'Your last report was very detailed. Good work. Keep it up and you might be next in line for a promotion.', timestamp: '1d ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' },
