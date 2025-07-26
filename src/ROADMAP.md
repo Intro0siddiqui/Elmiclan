@@ -17,6 +17,8 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
 - **User Story**: "As the project owner, I want to polish the UI, optimize performance, and ensure all features are robust, so that the portal is ready for its first users."
 - **Core Acceptance Criteria**:
   - [ ] Review and refine all UI elements for consistency and aesthetics.
+  - [ ] Verify that the Direct Message UI correctly displays recent chats.
+  - [ ] Implement the private chat interface for viewing conversation history between two users.
   - [ ] Replace all placeholder images and content.
   - [ ] Conduct performance testing and optimize loading times.
   - [ ] Ensure the CI/CD pipeline is fully operational.
