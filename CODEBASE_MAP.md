@@ -13,7 +13,7 @@ This document serves as a high-level guide to the ElmiClan Portal codebase. It m
 
 - **`src/components/ui/`**: Contains all the reusable, low-level UI components from `shadcn/ui` (e.g., `Button`, `Card`, `Input`). These are the building blocks of the interface.
 - **`src/app/globals.css`**: Defines the global styles and the CSS variables for the application's dark theme, including the primary, background, and accent colors.
-- **`src/app/dashboard/messenger/page.tsx`**: The user-facing page for sending E2EE messages. It contains a form that calls the `sendSecureMessage` flow.
+- **`src/app/dashboard/messenger/[mode]/page.tsx`**: The user-facing page for both the clan-wide chat and direct messages. It uses a dynamic `[mode]` parameter to switch between the two. For DMs, it implements a robust, state-driven UI to handle listing conversations, finding new chat partners, and sending messages in a private view.
 - **`src/components/dashboard/sidebar.tsx`**: The main navigation sidebar for the dashboard. It dynamically renders navigation items based on the user's rank.
 - **`src/components/dashboard/rank-specific/*.tsx`**: These files (`admin-dashboard.tsx`, `scout-dashboard.tsx`, etc.) contain the unique dashboard UI for each specific user rank.
 - **`src/components/AnimatedPage.tsx`**: A wrapper component using `framer-motion` to apply consistent fade-in and slide-up animations to pages, enhancing the user experience.
