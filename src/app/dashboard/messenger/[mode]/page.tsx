@@ -466,7 +466,7 @@ export default function MessengerPage() {
 
   return (
     <AnimatedPage>
-      <div className="w-full max-w-6xl mx-auto space-y-6">
+      <div className="w-full mx-auto space-y-6">
        {mode === 'clan' && (
         <Card>
             <CardHeader>
