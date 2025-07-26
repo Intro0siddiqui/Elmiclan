@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, use } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -21,7 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
@@ -206,13 +206,11 @@ function ClanMessageForm({ userRank }: { userRank: Rank }) {
 // #endregion
 
 // #region Direct Message Components
-const MOCK_CONVERSATIONS = [
-  { id: 'convo-1', partnerName: 'Sam Scout', partnerMatrixId: '@scout:matrix.org', lastMessage: 'Hey, I found something interesting near the Crystal Caves. Let me know when you are online because I might need some help with it.', timestamp: '2h ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' },
-  { id: 'convo-2', partnerName: 'Ada Admin', partnerMatrixId: '@admin:matrix.org', lastMessage: 'Your last report was very detailed. Good work. Keep it up and you might be next in line for a promotion.', timestamp: '1d ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' },
-  { id: 'convo-3', partnerName: 'Chris Conquistador The Great And Powerful', partnerMatrixId: '@conquistador:matrix.org', lastMessage: 'We need to plan the next campaign. Are you available for a strategy session tomorrow?', timestamp: '3d ago', avatar: 'https://placehold.co/100x100.png', dataAiHint: 'avatar person' }
-];
 
 function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () => void; onSelectConversation: (partnerId: string) => void }) {
+  // Mock data has been removed as requested.
+  const conversations = [];
+
   return (
     <Card>
       <CardHeader>
@@ -228,27 +226,37 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
         </div>
         <CardDescription>Your recent direct message history.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-1 p-2">
-        {MOCK_CONVERSATIONS.map((convo) => (
-            <div 
-              key={convo.id} 
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer transition-colors" 
-              onClick={() => onSelectConversation(convo.partnerMatrixId)}
-            >
-                <Avatar className="h-12 w-12 border-2 border-primary flex-shrink-0">
-                    <AvatarImage src={convo.avatar} alt={convo.partnerName} data-ai-hint={convo.dataAiHint} />
-                    <AvatarFallback>{convo.partnerName.charAt(0)}</AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
-                        <p className="font-semibold truncate">{convo.partnerName}</p>
-                        <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{convo.timestamp}</p>
+      <CardContent>
+        {conversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 space-y-4 border-2 border-dashed rounded-lg">
+            <Inbox className="h-10 w-10"/>
+            <h3 className="text-lg font-semibold">No Conversations</h3>
+            <p className="text-sm">You don't have any direct messages yet. Start a new chat to begin.</p>
+          </div>
+        ) : (
+          <div className="space-y-1 p-2">
+            {conversations.map((convo: any) => (
+                <div 
+                  key={convo.id} 
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary cursor-pointer transition-colors" 
+                  onClick={() => onSelectConversation(convo.partnerMatrixId)}
+                >
+                    <Avatar className="h-12 w-12 border-2 border-primary flex-shrink-0">
+                        <AvatarImage src={convo.avatar} alt={convo.partnerName} data-ai-hint={convo.dataAiHint} />
+                        <AvatarFallback>{convo.partnerName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center">
+                            <p className="font-semibold truncate">{convo.partnerName}</p>
+                            <p className="text-xs text-muted-foreground flex-shrink-0 ml-2">{convo.timestamp}</p>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">{convo.lastMessage}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">{convo.lastMessage}</p>
                 </div>
-            </div>
-        ))}
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
