@@ -176,7 +176,6 @@ const MOCK_CONVERSATIONS = [
 ];
 
 function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () => void; onSelectConversation: (partnerId: string) => void }) {
-    // In a real app, you would use useQuery to fetch this data
   const conversations = MOCK_CONVERSATIONS;
 
   return (
@@ -197,14 +196,14 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
       <CardContent className="space-y-2">
         {conversations.map((convo) => (
             <div key={convo.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary cursor-pointer transition-colors" onClick={() => onSelectConversation(convo.partnerMatrixId)}>
-                <Avatar className="h-12 w-12 border-2 border-primary">
+                <Avatar className="h-12 w-12 border-2 border-primary shrink-0">
                     <AvatarImage src={convo.avatar} alt={convo.partnerName} data-ai-hint={convo.dataAiHint} />
                     <AvatarFallback>{convo.partnerName.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-grow overflow-hidden">
                     <div className="flex justify-between items-center">
                         <p className="font-semibold truncate">{convo.partnerName}</p>
-                        <p className="text-xs text-muted-foreground">{convo.timestamp}</p>
+                        <p className="text-xs text-muted-foreground shrink-0">{convo.timestamp}</p>
                     </div>
                     <p className="text-sm text-muted-foreground truncate">{convo.lastMessage}</p>
                 </div>
@@ -231,6 +230,8 @@ function PartnerFinder({
     .map(([email, user]) => ({ email, ...user }))
     .filter(user => {
       if (user.email === currentUserEmail) return false; // Exclude self
+      // Admins are always visible
+      if (user.rank === 'Admin') return true;
       // Show users of equal or lower rank
       return rankHierarchy[user.rank] <= rankHierarchy[currentUserRank];
     });
@@ -389,7 +390,6 @@ export default function MessengerPage() {
   const mode = params.mode as string;
   const { user } = useAuth();
   
-
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
