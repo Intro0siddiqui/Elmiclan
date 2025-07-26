@@ -13,7 +13,7 @@ import {
   SidebarFooter,
   SidebarMenuSub,
   SidebarMenuSubButton,
-  SidebarMenuSubItem,
+  SidebarMenuSubItem
 } from '@/components/ui/sidebar';
 import {
   Accordion,
