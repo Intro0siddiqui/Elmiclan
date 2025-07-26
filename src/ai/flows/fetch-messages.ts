@@ -3,7 +3,8 @@
 /**
  * @fileOverview A flow for fetching recent messages from the main clan chat room.
  * This flow is designed to run on a secure server, protecting sensitive credentials.
- * It supports pagination to allow for fetching older messages.
+ * It supports pagination to allow for fetching older messages and includes both
+ * user messages and membership events (joins/leaves).
  */
 
 import { ai } from '@/ai/genkit';
@@ -13,12 +14,13 @@ import { z } from 'genkit';
 
 const FetchMessagesInputSchema = z.object({
   from: z.string().optional().describe('The pagination token from a previous request to fetch the next batch of older messages.'),
-  limit: z.number().optional().default(25).describe('The maximum number of messages to return.'),
+  limit: z.number().optional().default(25).describe('The maximum number of events to return.'),
 });
 export type FetchMessagesInput = z.infer<typeof FetchMessagesInputSchema>;
 
 export const MessageSchema = z.object({
     id: z.string(),
+    type: z.enum(['message', 'event']),
     sender: z.string(),
     content: z.string(),
     timestamp: z.number(),
@@ -69,8 +71,6 @@ const fetchMessagesFlow = ai.defineFlow(
             throw new Error('Clan chat room not found or bot is not a member.');
         }
 
-        // scrollback returns a timeline, with `events` being the messages
-        // and `end` being the token for the *next* batch of older messages.
         const timeline = await client.scrollback(room, limit, from);
         
         if (!timeline) {
@@ -78,16 +78,39 @@ const fetchMessagesFlow = ai.defineFlow(
         }
 
         const messages = timeline.events
-            .filter((event: any) => event.type === 'm.room.message' && event.content.msgtype === 'm.text' && event.content.body)
-            .map((event: any) => ({
-                id: event.event_id,
-                sender: event.sender,
-                content: event.content.body,
-                timestamp: event.origin_server_ts,
-            }));
+            .filter((event: any) => 
+                (event.type === 'm.room.message' && event.content.msgtype === 'm.text' && event.content.body) ||
+                (event.type === 'm.room.member')
+            )
+            .map((event: any) => {
+                if (event.type === 'm.room.member') {
+                    const senderName = event.content.displayname || event.sender.split(':')[0];
+                    let eventContent = `@${senderName} updated their profile.`;
+                    if (event.content.membership === 'join') {
+                        eventContent = `@${senderName} logged in.`;
+                    } else if (event.content.membership === 'leave') {
+                        eventContent = `@${senderName} logged out.`;
+                    }
+                    return {
+                        id: event.event_id,
+                        type: 'event' as const,
+                        sender: event.sender,
+                        content: eventContent,
+                        timestamp: event.origin_server_ts,
+                    }
+                }
+                // Otherwise, it's a message
+                return {
+                    id: event.event_id,
+                    type: 'message' as const,
+                    sender: event.sender,
+                    content: event.content.body,
+                    timestamp: event.origin_server_ts,
+                }
+            });
         
         return {
-            messages: messages, // The SDK returns messages from oldest to newest in the batch
+            messages: messages,
             nextFrom: timeline.end,
         };
 

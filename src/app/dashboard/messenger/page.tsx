@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
@@ -5,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { formatDistanceToNow } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,22 @@ type ResultState = {
     message: string;
 };
 
+function MessageBubble({ text }: { text: string }) {
+    return (
+        <div className="relative inline-block bg-gradient-to-b from-blue-600 to-blue-800 text-white rounded-lg px-4 py-2 shadow-md border border-blue-400">
+            <div 
+                className="absolute left-[-10px] top-1/2 -translate-y-1/2 w-0 h-0"
+                style={{
+                    borderTop: '8px solid transparent',
+                    borderBottom: '8px solid transparent',
+                    borderRight: '10px solid #2563EB', // Corresponds to from-blue-600
+                }}
+            />
+            {text}
+        </div>
+    );
+}
+
 function MessageHistory() {
   const {
     data,
@@ -56,7 +72,6 @@ function MessageHistory() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // This effect is to auto-scroll to the bottom when the component first loads.
     const scrollableNode = scrollRef.current?.querySelector('div[data-radix-scroll-area-viewport]');
     if (scrollableNode) {
       scrollableNode.scrollTop = scrollableNode.scrollHeight;
@@ -86,7 +101,7 @@ function MessageHistory() {
 
   return (
     <div className="flex flex-col h-[60vh] gap-4">
-      <ScrollArea className="flex-grow p-4 border rounded-lg" ref={scrollRef}>
+      <ScrollArea className="flex-grow p-4 border rounded-lg bg-black" ref={scrollRef}>
         <div className="flex justify-center my-2">
             {hasNextPage && (
               <Button
@@ -106,23 +121,31 @@ function MessageHistory() {
               </Button>
             )}
         </div>
-        <div className="flex flex-col-reverse gap-4">
-          {allMessages.map(msg => (
-            <div key={msg.id} className="flex items-start gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>{msg.sender.charAt(1).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm">{msg.sender.split(':')[0]}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}
-                  </span>
+        <div className="flex flex-col-reverse gap-4 font-mono text-white">
+          {allMessages.map(msg => {
+            if (msg.type === 'event') {
+                return (
+                    <div key={msg.id} className="flex items-center gap-2 text-sm text-gray-400">
+                        <span>►►</span>
+                        <span>{msg.content}</span>
+                    </div>
+                )
+            }
+            return (
+              <div key={msg.id} className="flex items-start gap-3">
+                <div className="flex flex-col items-center gap-1">
+                    <Avatar className="h-10 w-10 border-2 border-gray-500">
+                        {/* The '参' character is used as a placeholder like in the image */}
+                        <AvatarFallback className="bg-blue-800 text-white text-xl">参</AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs text-gray-300">{msg.sender.split(':')[0].replace('@', '')}</span>
                 </div>
-                <p className="text-sm">{msg.content}</p>
+                <div className="pt-2">
+                    <MessageBubble text={msg.content} />
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </ScrollArea>
     </div>
