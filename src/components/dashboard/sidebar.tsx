@@ -64,9 +64,9 @@ export function DashboardSidebar() {
                       <SidebarMenuSub>
                         {item.subItems.map(subItem => (
                           <SidebarMenuSubItem key={subItem.href}>
-                              <Link href={subItem.href} passHref>
+                              <Link href={subItem.href}>
                                 <SidebarMenuSubButton asChild isActive={pathname === subItem.href}>
-                                  <a>{subItem.label}</a>
+                                  {subItem.label}
                                 </SidebarMenuSubButton>
                               </Link>
                           </SidebarMenuSubItem>
