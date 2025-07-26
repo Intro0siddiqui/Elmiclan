@@ -175,7 +175,7 @@ const MOCK_CONVERSATIONS = [
   }
 ];
 
-function ConversationList() {
+function ConversationList({ onNewChat }: { onNewChat: () => void }) {
     // In a real app, you would use useQuery to fetch this data
   const conversations = MOCK_CONVERSATIONS;
 
@@ -187,7 +187,7 @@ function ConversationList() {
                 <Users className="h-5 w-5" />
                 <CardTitle>Conversations</CardTitle>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={onNewChat}>
                 <MessageSquarePlus className="mr-2 h-4 w-4"/>
                 New Chat
             </Button>
@@ -242,7 +242,7 @@ function PartnerFinder({
           <Users className="h-5 w-5" />
           <CardTitle>Find a Partner</CardTitle>
         </div>
-        <CardDescription>Connect with members to grow together. You can message anyone if you have their ID.</CardDescription>
+        <CardDescription>You can send requests to members of your rank or to any Admin. Copy their ID to start a conversation.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -343,19 +343,65 @@ export default function MessengerPage() {
   if (!user) return null;
 
   const renderDmContent = () => {
-    if (showPartnerFinder) {
-        return <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} />;
-    }
     return (
-        <>
-            <ConversationList/>
-        </>
+        <div className="grid md:grid-cols-2 gap-6 items-start">
+            <div className="space-y-6">
+                <ConversationList onNewChat={() => setShowPartnerFinder(!showPartnerFinder)} />
+                {form.getValues('toUserId') && !showPartnerFinder && (
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Send Direct Message</CardTitle>
+                            <CardDescription>Your message will be end-to-end encrypted.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
+                                     <FormField
+                                        control={form.control}
+                                        name="toUserId"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Recipient Matrix ID</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} readOnly placeholder="Select a partner to fill this"/>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="message"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Your Message</FormLabel>
+                                                <FormControl>
+                                                    <Textarea placeholder="Type your direct message..." {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <Button type="submit" className="w-full" disabled={loading}>
+                                        {loading ? <Loader2 className="animate-spin" /> : <Send />}
+                                        <span>{loading ? 'Sending...' : 'Send Direct Message'}</span>
+                                    </Button>
+                                </form>
+                            </Form>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+            {showPartnerFinder && (
+                <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} />
+            )}
+        </div>
     );
   };
 
   return (
     <AnimatedPage>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
        {mode === 'clan' && (
         <Card>
             <CardHeader>
@@ -438,5 +484,3 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
-
-    
