@@ -3,6 +3,8 @@
 /**
  * @fileOverview A flow for sending E2EE messages via the Matrix protocol.
  * This flow is designed to run on a secure server, protecting sensitive credentials.
+ * It supports both sending to a specific user (creating a 1-to-1 DM) and sending
+ * to a predefined group chat room.
  */
 
 import { ai } from '@/ai/genkit';
@@ -11,9 +13,7 @@ import { z } from 'genkit';
 // inside the flow itself, not at the top level.
 
 const SendSecureMessageInputSchema = z.object({
-  // toUserId is kept for schema compatibility with the frontend, but is no longer used
-  // to determine the room.
-  toUserId: z.string().optional(),
+  toUserId: z.string().optional().describe('The Matrix ID of the recipient for a direct message. If omitted, sends to the main clan chat.'),
   message: z.string().describe('The plain-text message to send.'),
 });
 export type SendSecureMessageInput = z.infer<typeof SendSecureMessageInputSchema>;
@@ -37,19 +37,14 @@ const sendSecureMessageFlow = ai.defineFlow(
     inputSchema: SendSecureMessageInputSchema,
     outputSchema: SendSecureMessageOutputSchema,
   },
-  async ({ message }) => {
+  async ({ toUserId, message }) => {
     let client: any = null;
     try {
-      // This is the hardcoded ID for the main clan chat room.
-      // In a real application, an admin would create this room in Matrix
-      // and the ID would be stored as a secure environment variable.
-      const clanRoomId = process.env.MATRIX_CLAN_ROOM_ID || '!YourMainClanRoomID:matrix.org';
-
       // Dynamically import the SDK when the flow is invoked
       const sdk = await import('matrix-js-sdk');
 
-      // In a real implementation, these would be fetched securely for the calling user.
       // These are placeholder credentials for a public test account.
+      // In a real implementation, these would be fetched securely.
       const matrixUserId = process.env.MATRIX_USER_ID || '@elmiclan-bot:matrix.org';
       const matrixAccessToken = process.env.MATRIX_ACCESS_TOKEN || 'syt_ZWxtaWNsYW4tYm90_aVJhZGRpY2xlQnJvY2NvbGk_U3VwZXJTZWNyZXQ';
       const matrixBaseUrl = process.env.MATRIX_BASE_URL || 'https://matrix.org';
@@ -77,34 +72,53 @@ const sendSecureMessageFlow = ai.defineFlow(
         });
       });
 
-      // Ensure the bot is a member of the clan room.
-      // An admin would need to invite the bot user to the room first.
-      const room = client.getRoom(clanRoomId);
-      if (!room) {
-          console.log(`Bot is not in room ${clanRoomId}. Attempting to join...`);
-          await client.joinRoom(clanRoomId);
-          console.log(`Successfully joined room ${clanRoomId}.`);
+      let roomId: string;
+      
+      if (toUserId) {
+        // Logic for 1-to-1 Direct Message
+        console.log(`Setting up 1-to-1 DM with ${toUserId}`);
+        const createRoomResponse = await client.createRoom({
+          is_direct: true,
+          visibility: 'private',
+          invite: [toUserId],
+          preset: 'private_chat',
+        });
+        roomId = createRoomResponse.room_id;
+        console.log(`Created DM room ${roomId} for ${toUserId}`);
+      } else {
+        // Logic for Unified Group Chat
+        // This is the hardcoded ID for the main clan chat room.
+        const clanRoomId = process.env.MATRIX_CLAN_ROOM_ID || '!YourMainClanRoomID:matrix.org';
+        roomId = clanRoomId;
+        console.log(`Targeting unified clan chat room: ${roomId}`);
+        
+        // Ensure the bot is a member of the clan room.
+        const room = client.getRoom(clanRoomId);
+        if (!room) {
+            console.log(`Bot is not in room ${clanRoomId}. Attempting to join...`);
+            await client.joinRoom(clanRoomId);
+            console.log(`Successfully joined room ${clanRoomId}.`);
+        }
       }
 
-      // 1) Wait for the room to be encrypted
-      console.log('Waiting for room to be encrypted...');
-      await client.waitForRoomToBeEncrypted(clanRoomId);
+      // Wait for the room to be encrypted
+      console.log(`Waiting for room ${roomId} to be encrypted...`);
+      await client.waitForRoomToBeEncrypted(roomId);
       console.log('Room is encrypted.');
 
-      // 2) Send the message
+      // Send the message
       const content = {
         body: message,
         msgtype: 'm.text',
       };
-      console.log(`Sending message to clan room ${clanRoomId}`);
-      await client.sendMessage(clanRoomId, content);
+      console.log(`Sending message to room ${roomId}`);
+      await client.sendMessage(roomId, content);
       console.log('Message sent successfully.');
       
-      return { success: true, roomId: clanRoomId };
+      return { success: true, roomId: roomId };
 
     } catch (e: any) {
       console.error('Matrix send failed:', e);
-      // Provide a more user-friendly error if the room is not found
       if (e.errcode === 'M_NOT_FOUND') {
         return {
           success: false,
