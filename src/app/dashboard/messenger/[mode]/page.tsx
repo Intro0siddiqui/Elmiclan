@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFormContext, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
@@ -247,7 +247,7 @@ function PartnerFinder({
           <Users className="h-5 w-5" />
           <CardTitle>Find a Partner</CardTitle>
         </div>
-        <CardDescription>You can send requests to members of your rank or to any Admin. Copy their ID to start a conversation.</CardDescription>
+        <CardDescription>You can send requests to members of your rank or to any Admin. Select a user to start a conversation.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -284,9 +284,12 @@ function PartnerFinder({
   );
 }
 
-function DirectMessageForm({ onBack, onMessageSent }: { onBack: () => void; onMessageSent: () => void; }) {
-  const { user } = useAuth();
-  const form = useFormContext<z.infer<typeof messageFormSchema>>();
+function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: string; onBack: () => void; onMessageSent: () => void; }) {
+  const form = useForm<z.infer<typeof messageFormSchema>>({
+    resolver: zodResolver(messageFormSchema),
+    defaultValues: { toUserId: toUserId, message: '', rankRestricted: false },
+  });
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -322,7 +325,8 @@ function DirectMessageForm({ onBack, onMessageSent }: { onBack: () => void; onMe
     }
   }
     
-    return (
+  return (
+      <FormProvider {...form}>
         <Card>
             <CardHeader>
                  <div className="flex items-center gap-2">
@@ -335,7 +339,7 @@ function DirectMessageForm({ onBack, onMessageSent }: { onBack: () => void; onMe
             </CardHeader>
             <CardContent>
                 <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
-                        <FormField
+                    <FormField
                         control={form.control}
                         name="toUserId"
                         render={({ field }) => (
@@ -374,6 +378,7 @@ function DirectMessageForm({ onBack, onMessageSent }: { onBack: () => void; onMe
                 </form>
             </CardContent>
         </Card>
+      </FormProvider>
     );
 }
 
@@ -388,16 +393,17 @@ export default function MessengerPage() {
   const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dmView, setDmView] = useState<DmView>('list');
+  const [selectedPartner, setSelectedPartner] = useState<string>('');
 
   const queryClient = useQueryClient();
 
-  const form = useForm<z.infer<typeof messageFormSchema>>({
+  const clanForm = useForm<z.infer<typeof messageFormSchema>>({
     resolver: zodResolver(messageFormSchema),
     defaultValues: { toUserId: '', message: '', rankRestricted: false },
   });
 
   const handleSelectPartner = (matrixId: string) => {
-    form.setValue('toUserId', matrixId);
+    setSelectedPartner(matrixId);
     setDmView('chat');
   };
 
@@ -406,7 +412,7 @@ export default function MessengerPage() {
   };
 
   const handleBackToList = () => {
-    form.reset({ toUserId: '', message: '', rankRestricted: false });
+    setSelectedPartner('');
     setDmView('list');
   };
 
@@ -425,7 +431,7 @@ export default function MessengerPage() {
       const response = await sendSecureMessage(input);
       if (response.success) {
         setResult({ success: true, message: `Message sent successfully to the clan chat!` });
-        form.reset({
+        clanForm.reset({
           message: '',
           toUserId: '',
           rankRestricted: false,
@@ -450,9 +456,7 @@ export default function MessengerPage() {
             return <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} onBack={handleBackToList} />;
         case 'chat':
             return (
-                <Form {...form}>
-                    <DirectMessageForm onBack={handleBackToList} onMessageSent={handleBackToList} />
-                </Form>
+                <DirectMessageForm toUserId={selectedPartner} onBack={handleBackToList} onMessageSent={handleBackToList} />
             );
         case 'list':
         default:
@@ -470,10 +474,10 @@ export default function MessengerPage() {
                 <CardDescription>Communicate with all clan members in the main chat room.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSendClanMessage)} className="space-y-4">
+                 <Form {...clanForm}>
+                    <form onSubmit={clanForm.handleSubmit(handleSendClanMessage)} className="space-y-4">
                         <FormField
-                        control={form.control}
+                        control={clanForm.control}
                         name="message"
                         render={({ field }) => (
                             <FormItem>
@@ -490,7 +494,7 @@ export default function MessengerPage() {
                         />
                         {user.rank !== 'Errante' && (
                         <FormField
-                            control={form.control}
+                            control={clanForm.control}
                             name="rankRestricted"
                             render={({ field }) => (
                             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
@@ -545,5 +549,3 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
-
-    
