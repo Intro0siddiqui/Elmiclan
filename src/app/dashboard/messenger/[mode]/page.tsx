@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useForm, useFormContext, FormProvider } from 'react-hook-form';
+import { useState, useRef, useEffect, use } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
@@ -466,7 +466,7 @@ export default function MessengerPage() {
 
   return (
     <AnimatedPage>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="w-full max-w-6xl mx-auto space-y-6">
        {mode === 'clan' && (
         <Card>
             <CardHeader>
@@ -549,3 +549,5 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
+
+    
