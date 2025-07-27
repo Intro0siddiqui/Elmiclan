@@ -410,7 +410,7 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
             </ScrollArea>
 
             {/* Message Input Footer */}
-            <div className="flex items-end gap-2 px-2 py-1 border-t">
+            <div className="flex items-center gap-2 px-2 py-1 border-t">
                 <div className="flex-grow flex items-center bg-zinc-800 rounded-full px-2">
                     <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
                         <Smile className="text-muted-foreground" />
