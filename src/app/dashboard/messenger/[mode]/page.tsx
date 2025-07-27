@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useEffect, use } from 'react';
@@ -21,7 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, Image as ImageIcon, PlusCircle, Tag } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, Image as ImageIcon, PlusCircle, Tag, UserPlus } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
@@ -341,12 +342,13 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
                     <AvatarFallback>{partner.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="ml-3">
-                    <p className="font-semibold">{partner.name}</p>
+                    <p className="font-semibold leading-none">{partner.name}</p>
                     <p className="text-xs text-muted-foreground">online</p>
                 </div>
-                <div className="ml-auto flex items-center gap-2">
+                <div className="ml-auto flex items-center gap-1">
                     <Button variant="ghost" size="icon"><Phone /></Button>
                     <Button variant="ghost" size="icon"><Video /></Button>
+                    <Button variant="ghost" size="icon"><UserPlus /></Button>
                     <Button variant="ghost" size="icon"><Tag /></Button>
                 </div>
             </div>
@@ -463,5 +465,3 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
-
-    
