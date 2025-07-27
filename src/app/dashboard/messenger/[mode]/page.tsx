@@ -9,6 +9,7 @@ import * as z from 'zod';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useParams } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, Image as ImageIcon, PlusCircle, Tag, UserPlus } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, Image as ImageIcon, PlusCircle, Tag, UserPlus, Smile, Heart, ThumbsUp } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
@@ -318,10 +319,10 @@ const MOCK_CHAT_HISTORY = [
     { id: 2, sender: 'me', text: 'Look similar to where u live' },
     { id: 3, sender: 'me', text: 'Kinda' },
     { id: 4, sender: 'other', text: 'That\'s where we live' },
-    { id: 5, sender: 'me', text: 'Look similar to where u live', repliedTo: 'You replied to yourself' },
+    { id: 5, sender: 'me', text: 'Look similar to where u live', repliedTo: { name: 'You', text: 'U stupid??' } },
     { id: 6, sender: 'me', text: 'I thought so' },
     { id: 7, sender: 'me', text: 'But then I thought my memory is weak' },
-    { id: 8, sender: 'other', text: 'It is', repliedTo: 'You replied' },
+    { id: 8, sender: 'other', text: 'It is', repliedTo: { name: 'You', text: 'But then I thought my memory is weak' } },
     { id: 9, sender: 'me', text: 'It isn\'t because I was right' },
     { id: 10, sender: 'me', text: 'But I just didn\'t trusted it' },
 ];
@@ -329,6 +330,13 @@ const MOCK_CHAT_HISTORY = [
 function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack: () => void }) {
     const [message, setMessage] = useState('');
     const partner = Object.values(MOCK_USERS).find(u => partnerId.includes(u.name.split(' ')[0].toLowerCase())) || { name: 'Unknown User' };
+
+    const ReplyPreview = ({ name, text }: { name: string; text: string }) => (
+        <div className="bg-black/20 p-2 rounded-lg mb-1 border-l-2 border-blue-400">
+            <p className="text-xs font-semibold">{name}</p>
+            <p className="text-xs text-muted-foreground truncate">{text}</p>
+        </div>
+    );
 
     return (
         <div className="flex flex-col h-[calc(100vh-10rem)] bg-background rounded-lg border">
@@ -355,27 +363,46 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
 
             {/* Message History */}
             <ScrollArea className="flex-grow p-4">
-                <div className="flex flex-col gap-4">
-                    {MOCK_CHAT_HISTORY.map((msg) => (
-                        <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-                            {msg.sender === 'other' && (
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src="https://placehold.co/100x100.png" alt={partner.name} data-ai-hint="person avatar" />
-                                    <AvatarFallback>{partner.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                            )}
-                            <div className="flex flex-col gap-1">
-                                {msg.repliedTo && (
-                                     <p className={`text-xs text-muted-foreground ${msg.sender === 'me' ? 'text-right' : 'text-left'}`}>
-                                        {msg.repliedTo}
-                                    </p>
+                <div className="flex flex-col gap-0.5">
+                    {MOCK_CHAT_HISTORY.map((msg, index) => {
+                        const prevMsg = MOCK_CHAT_HISTORY[index - 1];
+                        const nextMsg = MOCK_CHAT_HISTORY[index + 1];
+                        
+                        const isSameSenderAsPrev = prevMsg && prevMsg.sender === msg.sender;
+                        const isSameSenderAsNext = nextMsg && nextMsg.sender === msg.sender;
+
+                        const isFirstInGroup = !isSameSenderAsPrev;
+                        const isLastInGroup = !isSameSenderAsNext;
+
+                        const senderClasses = cn(
+                            'rounded-3xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white',
+                             isLastInGroup ? 'rounded-br-lg' : 'rounded-br-md',
+                             isFirstInGroup ? 'rounded-tr-3xl' : 'rounded-tr-md'
+                        );
+
+                        const otherClasses = cn(
+                            'bg-zinc-800 text-white',
+                            isLastInGroup ? 'rounded-bl-lg' : 'rounded-bl-md',
+                            isFirstInGroup ? 'rounded-tl-3xl' : 'rounded-tl-md'
+                        );
+
+                        return (
+                            <div key={msg.id} className={cn('flex items-end gap-2', msg.sender === 'me' ? 'justify-end' : 'justify-start')}>
+                                {msg.sender === 'other' && (
+                                    <Avatar className={cn('h-8 w-8 self-end', isSameSenderAsNext ? 'opacity-0' : 'opacity-100')}>
+                                        <AvatarImage src="https://placehold.co/100x100.png" alt={partner.name} data-ai-hint="person avatar" />
+                                        <AvatarFallback>{partner.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
                                 )}
-                                <div className={`max-w-xs rounded-2xl px-4 py-2 ${msg.sender === 'me' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary rounded-bl-none'}`}>
-                                    <p>{msg.text}</p>
+                                <div className={cn("flex flex-col gap-1 max-w-xs md:max-w-md", msg.sender === 'me' ? 'items-end' : 'items-start')}>
+                                    {msg.repliedTo && <ReplyPreview name={msg.repliedTo.name} text={msg.repliedTo.text} />}
+                                    <div className={cn('px-4 py-2', msg.sender === 'me' ? senderClasses : otherClasses)}>
+                                        <p>{msg.text}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </ScrollArea>
 
