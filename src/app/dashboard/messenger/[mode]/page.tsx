@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
@@ -346,19 +346,33 @@ function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: stri
   return (
     <Card>
         <CardHeader>
-            <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="mr-2 h-8 w-8" onClick={onBack}>
-                    <ArrowLeft />
-                </Button>
-                <CardTitle>Send Direct Message</CardTitle>
+            <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="mr-2 h-8 w-8" onClick={onBack}>
+                        <ArrowLeft />
+                    </Button>
+                    <div>
+                        <CardTitle>Direct Message</CardTitle>
+                        <CardDescription className="mt-1">to {toUserId}</CardDescription>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon">
+                        <Phone className="h-5 w-5" />
+                        <span className="sr-only">Voice Call</span>
+                    </Button>
+                    <Button variant="ghost" size="icon">
+                        <Video className="h-5 w-5" />
+                        <span className="sr-only">Video Call</span>
+                    </Button>
+                </div>
             </div>
-            <CardDescription>Your message to {toUserId} will be end-to-end encrypted.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
                     <FormField control={form.control} name="toUserId" render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="sr-only">
                             <FormLabel>Recipient Matrix ID</FormLabel>
                             <FormControl><Input {...field} readOnly /></FormControl>
                             <FormMessage />
