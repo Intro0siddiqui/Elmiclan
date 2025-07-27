@@ -338,7 +338,7 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
     );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-56px)] md:h-screen bg-background">
+        <div className="flex flex-col h-full bg-background">
             {/* Chat Header */}
             <div className="flex items-center p-2 border-b">
                 <Button variant="ghost" size="icon" onClick={onBack} className="mr-2">
@@ -483,7 +483,7 @@ export default function MessengerPage() {
 
   return (
     <AnimatedPage>
-      <div className="w-full">
+      <div className="w-full h-screen overflow-hidden bg-background">
        {mode === 'clan' && (
         <div className="space-y-6 p-4 md:p-6">
           <ClanMessageForm userRank={user.rank} />
