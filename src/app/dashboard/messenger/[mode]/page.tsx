@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, Image as ImageIcon, PlusCircle, Tag, UserPlus, Smile, Heart, ThumbsUp } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, Image as ImageIcon, PlusCircle, Tag, UserPlus, Smile } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
@@ -319,7 +319,7 @@ const MOCK_CHAT_HISTORY = [
     { id: 2, sender: 'me', text: 'Look similar to where u live' },
     { id: 3, sender: 'me', text: 'Kinda' },
     { id: 4, sender: 'other', text: 'That\'s where we live' },
-    { id: 5, sender: 'me', text: 'Look similar to where u live', repliedTo: { name: 'You', text: 'U stupid??' } },
+    { id: 5, sender: 'me', text: 'Look similar to where u live', repliedTo: { name: 'Ada Admin', text: 'U stupid??' } },
     { id: 6, sender: 'me', text: 'I thought so' },
     { id: 7, sender: 'me', text: 'But then I thought my memory is weak' },
     { id: 8, sender: 'other', text: 'It is', repliedTo: { name: 'You', text: 'But then I thought my memory is weak' } },
@@ -389,10 +389,14 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
                         return (
                             <div key={msg.id} className={cn('flex items-end gap-2', msg.sender === 'me' ? 'justify-end' : 'justify-start')}>
                                 {msg.sender === 'other' && (
-                                    <Avatar className={cn('h-8 w-8 self-end', isSameSenderAsNext ? 'opacity-0' : 'opacity-100')}>
-                                        <AvatarImage src="https://placehold.co/100x100.png" alt={partner.name} data-ai-hint="person avatar" />
-                                        <AvatarFallback>{partner.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
+                                    <div className='w-8'>
+                                        {!isSameSenderAsNext && (
+                                            <Avatar className={cn('h-8 w-8 self-end')}>
+                                                <AvatarImage src="https://placehold.co/100x100.png" alt={partner.name} data-ai-hint="person avatar" />
+                                                <AvatarFallback>{partner.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                        )}
+                                    </div>
                                 )}
                                 <div className={cn("flex flex-col gap-1 max-w-xs md:max-w-md", msg.sender === 'me' ? 'items-end' : 'items-start')}>
                                     {msg.repliedTo && <ReplyPreview name={msg.repliedTo.name} text={msg.repliedTo.text} />}
@@ -445,7 +449,7 @@ export default function MessengerPage() {
 
   if (!user) {
     return (
-        <div className="w-full space-y-4">
+        <div className="w-full space-y-4 p-4 md:p-6">
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-64 w-full" />
         </div>
@@ -480,7 +484,7 @@ export default function MessengerPage() {
 
   return (
     <AnimatedPage>
-      <div className="w-full space-y-6">
+      <div className="w-full space-y-6 p-4 md:p-6">
        {mode === 'clan' && (
         <>
           <ClanMessageForm userRank={user.rank} />
@@ -492,3 +496,5 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
+
+    
