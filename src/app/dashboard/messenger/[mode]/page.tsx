@@ -22,12 +22,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, PlusCircle, Tag, UserPlus, Smile, Camera, Search } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, PlusCircle, Tag, UserPlus, Smile, Camera, Search, KeyRound } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { AnimatedPage } from '@/components/AnimatedPage';
+import { Separator } from '@/components/ui/separator';
 
 const clanMessageFormSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
@@ -218,18 +219,14 @@ function ConversationList({ onSelectConversation, onFindMore }: { onSelectConver
             <Users className="h-5 w-5" />
             <CardTitle>Conversations</CardTitle>
         </div>
-        <CardDescription>Your recent direct message history.</CardDescription>
+        <CardDescription>Your direct message history.</CardDescription>
       </CardHeader>
       <CardContent>
         {conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 space-y-4 border-2 border-dashed rounded-lg">
             <Inbox className="h-10 w-10"/>
             <h3 className="text-lg font-semibold">No Recent Conversations</h3>
-            <p className="text-sm">You don't have any direct messages yet. Find a partner below to begin.</p>
-            <Button variant="outline" onClick={onFindMore}>
-                <MessageSquarePlus className="mr-2 h-4 w-4"/>
-                Start a New Chat
-            </Button>
+            <p className="text-sm">You haven't started any private chats yet. Find a partner below to begin.</p>
           </div>
         ) : (
           <div className="space-y-1 p-2">
@@ -253,26 +250,60 @@ function ConversationList({ onSelectConversation, onFindMore }: { onSelectConver
                     </div>
                 </div>
             ))}
-            <Button variant="link" className="w-full mt-2" onClick={onFindMore}>
-                Find more partners
-            </Button>
           </div>
         )}
+        <Button variant="link" className="w-full mt-2" onClick={onFindMore}>
+            Find a partner to chat with
+        </Button>
       </CardContent>
     </Card>
   );
 }
 
-function PartnerFinder({ currentUserRank, currentUserEmail, onSelectPartner, refProp }: { currentUserRank: Rank; currentUserEmail: string; onSelectPartner: (matrixId: string) => void; refProp: React.RefObject<HTMLDivElement>; }) {
-  const potentialPartners = Object.entries(MOCK_USERS)
-    .map(([email, user]) => ({ email, ...(user as Omit<User, 'email'>) }))
-    .filter(user => {
-      if (user.email === currentUserEmail) return false;
-      if (user.rank === 'Admin') return true;
-      return rankHierarchy[user.rank] <= rankHierarchy[currentUserRank];
-    });
+function UidConnector({ onSelectPartner }: { onSelectPartner: (matrixId: string) => void }) {
+    const [uid, setUid] = useState('');
+    const [error, setError] = useState('');
 
-  const currentUserMatrixId = `@${currentUserEmail.split('@')[0]}:matrix.org`;
+    const handleConnect = () => {
+        setError('');
+        const user = Object.values(MOCK_USERS).find(u => u.id === uid);
+        if (user) {
+            const matrixId = `@${user.name.split(' ')[0].toLowerCase()}${user.name.split(' ')[1].toLowerCase()}:matrix.org`;
+            onSelectPartner(matrixId);
+        } else {
+            setError('User ID not found. Please check the ID and try again.');
+        }
+    };
+    
+    return (
+        <div className='space-y-4'>
+            <div className='space-y-2'>
+                <Label className='flex items-center gap-2'><KeyRound className='h-4 w-4' /><span>Connect via UID</span></Label>
+                <p className='text-xs text-muted-foreground'>If you have another member's private UID, you can connect directly, bypassing rank restrictions.</p>
+            </div>
+            <div className="flex w-full max-w-sm items-center space-x-2">
+                <Input 
+                    type="text" 
+                    placeholder="Enter member UID..." 
+                    value={uid}
+                    onChange={(e) => setUid(e.target.value)}
+                />
+                <Button type="button" onClick={handleConnect}>Connect</Button>
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+        </div>
+    )
+}
+
+function PartnerFinder({ currentUser, onSelectPartner, refProp }: { currentUser: User; onSelectPartner: (matrixId: string) => void; refProp: React.RefObject<HTMLDivElement>; }) {
+  const potentialPartners = Object.values(MOCK_USERS)
+    .filter(user => {
+      if (user.id === currentUser.id) return false;
+      // Show only users of the same or lower rank.
+      return rankHierarchy[user.rank] <= rankHierarchy[currentUser.rank];
+    });
+  
+  const currentUserMatrixId = `@${currentUser.email.split('@')[0]}:matrix.org`;
 
   return (
     <Card ref={refProp}>
@@ -281,30 +312,41 @@ function PartnerFinder({ currentUserRank, currentUserEmail, onSelectPartner, ref
           <Search className="h-5 w-5" />
           <CardTitle>Find a Partner</CardTitle>
         </div>
-        <CardDescription>Select a user to start a new private conversation. Admins are always visible.</CardDescription>
+        <CardDescription>Browse the directory or connect directly via UID.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="your-id">Your Matrix ID (Share this to be contacted)</Label>
+          <Label htmlFor="your-id">Your Matrix ID (For Manual Invites)</Label>
           <Input id="your-id" readOnly value={currentUserMatrixId} />
         </div>
-        <div className="space-y-3">
-          {potentialPartners.length > 0 ? (
-            potentialPartners.map(user => {
-              const userMatrixId = `@${user.email.split('@')[0]}:matrix.org`;
-              return (
-                <div key={user.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
-                  <div>
-                    <p className="font-semibold">{user.name} ({user.rank})</p>
-                    <p className="text-xs text-muted-foreground">{userMatrixId}</p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => onSelectPartner(userMatrixId)}>Select</Button>
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-sm text-center text-muted-foreground">No available partners of your rank right now.</p>
-          )}
+        
+        <Separator />
+        
+        <UidConnector onSelectPartner={onSelectPartner} />
+        
+        <Separator />
+
+        <div>
+            <Label>Public Directory (Same or Lower Rank)</Label>
+            <p className='text-xs text-muted-foreground mb-4'>Users visible based on your current rank.</p>
+            <div className="space-y-3">
+            {potentialPartners.length > 0 ? (
+                potentialPartners.map(user => {
+                const userMatrixId = `@${user.email.split('@')[0]}:matrix.org`;
+                return (
+                    <div key={user.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                    <div>
+                        <p className="font-semibold">{user.name} ({user.rank})</p>
+                        <p className="text-xs text-muted-foreground">UID: {user.id}</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => onSelectPartner(userMatrixId)}>Select</Button>
+                    </div>
+                );
+                })
+            ) : (
+                <p className="text-sm text-center text-muted-foreground">No available partners of your rank right now.</p>
+            )}
+            </div>
         </div>
       </CardContent>
     </Card>
@@ -325,7 +367,7 @@ const MOCK_CHAT_HISTORY = [
 
 function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack: () => void }) {
     const [message, setMessage] = useState('');
-    const partner = Object.values(MOCK_USERS).find(u => partnerId.includes(u.name.split(' ')[0].toLowerCase())) || { name: 'Unknown User' };
+    const partner = Object.values(MOCK_USERS).find(u => partnerId.includes(u.email.split('@')[0])) || { name: 'Unknown User' };
 
     const ReplyPreview = ({ name, text }: { name: string; text: string }) => (
         <div className="bg-black/20 p-2 rounded-lg mb-1 border-l-2 border-blue-400">
@@ -352,8 +394,6 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
                 <div className="ml-auto flex items-center gap-1">
                     <Button variant="ghost" size="icon"><Phone /></Button>
                     <Button variant="ghost" size="icon"><Video /></Button>
-                    <Button variant="ghost" size="icon"><UserPlus /></Button>
-                    <Button variant="ghost" size="icon"><Tag /></Button>
                 </div>
             </div>
 
@@ -386,7 +426,7 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
                             <div key={msg.id} className={cn('flex items-end gap-2', msg.sender === 'me' ? 'justify-end' : 'justify-start')}>
                                 {msg.sender === 'other' && (
                                     <div className='w-8'>
-                                        {isLastInGroup && (
+                                        {!isSameSenderAsNext && (
                                             <Avatar className={cn('h-8 w-8 self-end')}>
                                                 <AvatarImage src="https://placehold.co/100x100.png" alt={partner.name} data-ai-hint="person avatar" />
                                                 <AvatarFallback>{partner.name.charAt(0)}</AvatarFallback>
@@ -409,8 +449,8 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
             {/* Message Input Footer */}
             <div className="flex items-end gap-2 px-2 py-1 border-t">
                 <div className="flex-grow flex items-center bg-zinc-800 rounded-full px-2">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                        <Smile className="text-muted-foreground" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground">
+                        <Smile />
                     </Button>
                     <Textarea
                         placeholder="Message..."
@@ -420,11 +460,11 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
                         rows={1}
                     />
                     <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                            <Camera className="text-muted-foreground" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground">
+                            <Camera />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                            <Mic className="text-muted-foreground" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground">
+                            <Mic />
                         </Button>
                     </div>
                 </div>
@@ -481,16 +521,18 @@ export default function MessengerPage() {
     }
 
     return (
-        <div className="p-4 md:p-6 space-y-6">
-            <ConversationList onSelectConversation={handleSelectPartner} onFindMore={handleFindMore} />
-            <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} refProp={partnerFinderRef} />
-        </div>
+        <ScrollArea className="h-full">
+            <div className="p-4 md:p-6 space-y-6">
+                <ConversationList onSelectConversation={handleSelectPartner} onFindMore={handleFindMore} />
+                <PartnerFinder currentUser={user} onSelectPartner={handleSelectPartner} refProp={partnerFinderRef} />
+            </div>
+        </ScrollArea>
     );
   };
 
   return (
     <AnimatedPage>
-      <div className="h-screen w-full overflow-y-auto bg-background">
+      <div className="h-screen w-full bg-background overflow-hidden">
        {mode === 'clan' && (
         <div className="space-y-6 p-4 md:p-6">
           <ClanMessageForm userRank={user.rank} />
@@ -502,5 +544,3 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
-
-    
