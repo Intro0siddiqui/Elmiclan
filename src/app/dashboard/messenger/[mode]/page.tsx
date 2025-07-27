@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect, use } from 'react';
@@ -23,7 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, PlusCircle, Tag, UserPlus, Smile, Camera } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, PlusCircle, Tag, UserPlus, Smile, Camera, Search } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
@@ -209,21 +208,15 @@ function ClanMessageForm({ userRank }: { userRank: Rank }) {
 
 // #region Direct Message Components
 
-function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () => void; onSelectConversation: (partnerId: string) => void }) {
-  const conversations: any[] = []; 
+function ConversationList({ onSelectConversation, onFindMore }: { onSelectConversation: (partnerId: string) => void; onFindMore: () => void; }) {
+  const conversations: any[] = []; // This will hold real conversation data in the future
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                <CardTitle>Conversations</CardTitle>
-            </div>
-            <Button variant="outline" size="sm" onClick={onNewChat}>
-                <MessageSquarePlus className="mr-2 h-4 w-4"/>
-                New Chat
-            </Button>
+        <div className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            <CardTitle>Conversations</CardTitle>
         </div>
         <CardDescription>Your recent direct message history.</CardDescription>
       </CardHeader>
@@ -231,8 +224,12 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
         {conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 space-y-4 border-2 border-dashed rounded-lg">
             <Inbox className="h-10 w-10"/>
-            <h3 className="text-lg font-semibold">No Conversations</h3>
-            <p className="text-sm">You don't have any direct messages yet. Start a new chat to begin.</p>
+            <h3 className="text-lg font-semibold">No Recent Conversations</h3>
+            <p className="text-sm">You don't have any direct messages yet. Find a partner below to begin.</p>
+            <Button variant="outline" onClick={onFindMore}>
+                <MessageSquarePlus className="mr-2 h-4 w-4"/>
+                Start a New Chat
+            </Button>
           </div>
         ) : (
           <div className="space-y-1 p-2">
@@ -256,6 +253,9 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
                     </div>
                 </div>
             ))}
+            <Button variant="link" className="w-full mt-2" onClick={onFindMore}>
+                Find more partners
+            </Button>
           </div>
         )}
       </CardContent>
@@ -263,7 +263,7 @@ function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () =
   );
 }
 
-function PartnerFinder({ currentUserRank, currentUserEmail, onSelectPartner, onBack }: { currentUserRank: Rank; currentUserEmail: string; onSelectPartner: (matrixId: string) => void; onBack: () => void; }) {
+function PartnerFinder({ currentUserRank, currentUserEmail, onSelectPartner, refProp }: { currentUserRank: Rank; currentUserEmail: string; onSelectPartner: (matrixId: string) => void; refProp: React.RefObject<HTMLDivElement>; }) {
   const potentialPartners = Object.entries(MOCK_USERS)
     .map(([email, user]) => ({ email, ...(user as Omit<User, 'email'>) }))
     .filter(user => {
@@ -275,16 +275,13 @@ function PartnerFinder({ currentUserRank, currentUserEmail, onSelectPartner, onB
   const currentUserMatrixId = `@${currentUserEmail.split('@')[0]}:matrix.org`;
 
   return (
-    <Card>
+    <Card ref={refProp}>
       <CardHeader>
         <div className="flex items-center gap-2">
-           <Button variant="ghost" size="icon" className="mr-2 h-8 w-8" onClick={onBack}>
-                <ArrowLeft />
-           </Button>
-          <Users className="h-5 w-5" />
+          <Search className="h-5 w-5" />
           <CardTitle>Find a Partner</CardTitle>
         </div>
-        <CardDescription>Select a user to start a conversation. Admins are always visible.</CardDescription>
+        <CardDescription>Select a user to start a new private conversation. Admins are always visible.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -318,7 +315,7 @@ const MOCK_CHAT_HISTORY = [
     { id: 2, sender: 'me', text: 'Look similar to where u live' },
     { id: 3, sender: 'me', text: 'Kinda' },
     { id: 4, sender: 'other', text: 'That\'s where we live' },
-    { id: 5, sender: 'me', text: 'Look similar to where u live', repliedTo: { name: 'Ada Admin', text: 'U stupid??' } },
+    { id: 5, sender: 'me', text: 'Look similar to where u live', repliedTo: { name: 'Ada Admin', text: 'That\'s where we live' } },
     { id: 6, sender: 'me', text: 'I thought so' },
     { id: 7, sender: 'me', text: 'But then I thought my memory is weak' },
     { id: 8, sender: 'other', text: 'It is', repliedTo: { name: 'You', text: 'But then I thought my memory is weak' } },
@@ -389,7 +386,7 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
                             <div key={msg.id} className={cn('flex items-end gap-2', msg.sender === 'me' ? 'justify-end' : 'justify-start')}>
                                 {msg.sender === 'other' && (
                                     <div className='w-8'>
-                                        {!isSameSenderAsNext && (
+                                        {isLastInGroup && (
                                             <Avatar className={cn('h-8 w-8 self-end')}>
                                                 <AvatarImage src="https://placehold.co/100x100.png" alt={partner.name} data-ai-hint="person avatar" />
                                                 <AvatarFallback>{partner.name.charAt(0)}</AvatarFallback>
@@ -440,19 +437,18 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
 }
 // #endregion
 
-type DmView = 'list' | 'new' | 'chat';
-
 export default function MessengerPage() {
   const params = useParams();
   const { user } = useAuth();
   
-  const [dmView, setDmView] = useState<DmView>('list');
+  const [isChatActive, setIsChatActive] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<string>('');
+  const partnerFinderRef = useRef<HTMLDivElement>(null);
 
   const mode = params.mode as string;
 
   useEffect(() => {
-    setDmView('list');
+    setIsChatActive(false);
     setSelectedPartner('');
   }, [mode]);
 
@@ -467,33 +463,34 @@ export default function MessengerPage() {
 
   const handleSelectPartner = (matrixId: string) => {
     setSelectedPartner(matrixId);
-    setDmView('chat');
+    setIsChatActive(true);
   };
 
   const handleBackToList = () => {
     setSelectedPartner('');
-    setDmView('list');
+    setIsChatActive(false);
   };
   
-  const handleNewChat = () => {
-    setDmView('new');
+  const handleFindMore = () => {
+    partnerFinderRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const renderDmContent = () => {
-    switch (dmView) {
-        case 'new':
-            return <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} onBack={handleBackToList} />;
-        case 'chat':
-            return <PrivateChatInterface partnerId={selectedPartner} onBack={handleBackToList} />;
-        case 'list':
-        default:
-            return <ConversationList onNewChat={handleNewChat} onSelectConversation={handleSelectPartner}/>;
+    if (isChatActive) {
+      return <PrivateChatInterface partnerId={selectedPartner} onBack={handleBackToList} />;
     }
+
+    return (
+        <div className="p-4 md:p-6 space-y-6">
+            <ConversationList onSelectConversation={handleSelectPartner} onFindMore={handleFindMore} />
+            <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} refProp={partnerFinderRef} />
+        </div>
+    );
   };
 
   return (
     <AnimatedPage>
-      <div className="h-screen w-full overflow-hidden bg-background">
+      <div className="h-screen w-full overflow-y-auto bg-background">
        {mode === 'clan' && (
         <div className="space-y-6 p-4 md:p-6">
           <ClanMessageForm userRank={user.rank} />
