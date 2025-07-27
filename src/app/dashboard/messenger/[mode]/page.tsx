@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, use } from 'react';
@@ -20,7 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, Image as ImageIcon, PlusCircle, Tag } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
@@ -207,7 +208,7 @@ function ClanMessageForm({ userRank }: { userRank: Rank }) {
 // #region Direct Message Components
 
 function ConversationList({ onNewChat, onSelectConversation }: { onNewChat: () => void; onSelectConversation: (partnerId: string) => void }) {
-  const conversations: any[] = []; // No mock data
+  const conversations: any[] = []; 
 
   return (
     <Card>
@@ -311,95 +312,89 @@ function PartnerFinder({ currentUserRank, currentUserEmail, onSelectPartner, onB
   );
 }
 
-function DirectMessageForm({ toUserId, onBack, onMessageSent }: { toUserId: string; onBack: () => void; onMessageSent: () => void; }) {
-  const form = useForm<z.infer<typeof directMessageFormSchema>>({
-    resolver: zodResolver(directMessageFormSchema),
-    defaultValues: { toUserId: toUserId, message: '' },
-  });
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const MOCK_CHAT_HISTORY = [
+    { id: 1, sender: 'other', text: 'U stupid??' },
+    { id: 2, sender: 'me', text: 'Look similar to where u live' },
+    { id: 3, sender: 'me', text: 'Kinda' },
+    { id: 4, sender: 'other', text: 'That\'s where we live' },
+    { id: 5, sender: 'me', text: 'Look similar to where u live', repliedTo: 'You replied to yourself' },
+    { id: 6, sender: 'me', text: 'I thought so' },
+    { id: 7, sender: 'me', text: 'But then I thought my memory is weak' },
+    { id: 8, sender: 'other', text: 'It is', repliedTo: 'You replied' },
+    { id: 9, sender: 'me', text: 'It isn\'t because I was right' },
+    { id: 10, sender: 'me', text: 'But I just didn\'t trusted it' },
+];
 
-  useEffect(() => {
-    form.setValue('toUserId', toUserId);
-  }, [toUserId, form]);
+function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack: () => void }) {
+    const [message, setMessage] = useState('');
+    const partner = Object.values(MOCK_USERS).find(u => partnerId.includes(u.name.split(' ')[0].toLowerCase())) || { name: 'Unknown User' };
 
-  async function handleSendMessage(values: z.infer<typeof directMessageFormSchema>) {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await sendSecureMessage({ message: values.message, toUserId: values.toUserId });
-      if (response.success) {
-        onMessageSent();
-      } else {
-        throw new Error(response.error || 'Failed to send message.');
-      }
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }
-    
-  return (
-    <Card>
-        <CardHeader>
-            <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="mr-2 h-8 w-8" onClick={onBack}>
-                        <ArrowLeft />
-                    </Button>
-                    <div>
-                        <CardTitle>Direct Message</CardTitle>
-                        <CardDescription className="mt-1">to {toUserId}</CardDescription>
-                    </div>
+    return (
+        <div className="flex flex-col h-[calc(100vh-10rem)] bg-background rounded-lg border">
+            {/* Chat Header */}
+            <div className="flex items-center p-2 border-b">
+                <Button variant="ghost" size="icon" onClick={onBack} className="mr-2">
+                    <ArrowLeft />
+                </Button>
+                <Avatar className="h-10 w-10">
+                    <AvatarImage src="https://placehold.co/100x100.png" alt={partner.name} data-ai-hint="person avatar" />
+                    <AvatarFallback>{partner.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="ml-3">
+                    <p className="font-semibold">{partner.name}</p>
+                    <p className="text-xs text-muted-foreground">online</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon">
-                        <Phone className="h-5 w-5" />
-                        <span className="sr-only">Voice Call</span>
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                        <Video className="h-5 w-5" />
-                        <span className="sr-only">Video Call</span>
-                    </Button>
+                <div className="ml-auto flex items-center gap-2">
+                    <Button variant="ghost" size="icon"><Phone /></Button>
+                    <Button variant="ghost" size="icon"><Video /></Button>
+                    <Button variant="ghost" size="icon"><Tag /></Button>
                 </div>
             </div>
-        </CardHeader>
-        <CardContent>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSendMessage)} className="space-y-4">
-                    <FormField control={form.control} name="toUserId" render={({ field }) => (
-                        <FormItem className="sr-only">
-                            <FormLabel>Recipient Matrix ID</FormLabel>
-                            <FormControl><Input {...field} readOnly /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="message" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Your Message</FormLabel>
-                            <FormControl><Textarea placeholder="Type your direct message..." {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    {error && (
-                        <Alert variant="destructive" className="mt-4">
-                            <AlertTitle>Action Failed</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
-                    <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? <Loader2 className="animate-spin" /> : <Send />}
-                        <span>{loading ? 'Sending...' : 'Send Direct Message'}</span>
-                    </Button>
-                </form>
-            </Form>
-        </CardContent>
-    </Card>
-  );
+
+            {/* Message History */}
+            <ScrollArea className="flex-grow p-4">
+                <div className="flex flex-col gap-4">
+                    {MOCK_CHAT_HISTORY.map((msg) => (
+                        <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                            {msg.sender === 'other' && (
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src="https://placehold.co/100x100.png" alt={partner.name} data-ai-hint="person avatar" />
+                                    <AvatarFallback>{partner.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                            )}
+                            <div className="flex flex-col gap-1">
+                                {msg.repliedTo && (
+                                     <p className={`text-xs text-muted-foreground ${msg.sender === 'me' ? 'text-right' : 'text-left'}`}>
+                                        {msg.repliedTo}
+                                    </p>
+                                )}
+                                <div className={`max-w-xs rounded-2xl px-4 py-2 ${msg.sender === 'me' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary rounded-bl-none'}`}>
+                                    <p>{msg.text}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
+
+            {/* Message Input Footer */}
+            <div className="flex items-center p-2 border-t bg-secondary/50 rounded-b-lg">
+                <Button variant="ghost" size="icon"><ImageIcon className="text-primary" /></Button>
+                <Textarea
+                    placeholder="Message..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="flex-grow border-none focus-visible:ring-0 bg-transparent resize-none"
+                    rows={1}
+                />
+                 <div className="flex items-center">
+                    <Button variant="ghost" size="icon"><Mic /></Button>
+                    <Button variant="ghost" size="icon"><PlusCircle /></Button>
+                    <Button variant="ghost" size="icon"><Send /></Button>
+                </div>
+            </div>
+        </div>
+    );
 }
 // #endregion
 
@@ -421,7 +416,7 @@ export default function MessengerPage() {
 
   if (!user) {
     return (
-        <div className="w-full p-4 md:p-6 space-y-4">
+        <div className="w-full space-y-4">
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-64 w-full" />
         </div>
@@ -447,7 +442,7 @@ export default function MessengerPage() {
         case 'new':
             return <PartnerFinder currentUserRank={user.rank} currentUserEmail={user.email} onSelectPartner={handleSelectPartner} onBack={handleBackToList} />;
         case 'chat':
-            return <DirectMessageForm toUserId={selectedPartner} onBack={handleBackToList} onMessageSent={handleBackToList} />;
+            return <PrivateChatInterface partnerId={selectedPartner} onBack={handleBackToList} />;
         case 'list':
         default:
             return <ConversationList onNewChat={handleNewChat} onSelectConversation={handleSelectPartner}/>;
@@ -456,7 +451,7 @@ export default function MessengerPage() {
 
   return (
     <AnimatedPage>
-      <div className="w-full p-4 md:p-6 space-y-6">
+      <div className="w-full space-y-6">
        {mode === 'clan' && (
         <>
           <ClanMessageForm userRank={user.rank} />
@@ -468,3 +463,5 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
+
+    
