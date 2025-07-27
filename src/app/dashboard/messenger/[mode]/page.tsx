@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useEffect, use } from 'react';
@@ -268,7 +269,7 @@ function UidConnector({ onSelectPartner }: { onSelectPartner: (matrixId: string)
         setError('');
         const user = Object.values(MOCK_USERS).find(u => u.id === uid);
         if (user) {
-            const matrixId = `@${user.name.split(' ')[0].toLowerCase()}${user.name.split(' ')[1].toLowerCase()}:matrix.org`;
+            const matrixId = `@${user.email.split('@')[0]}:matrix.org`;
             onSelectPartner(matrixId);
         } else {
             setError('User ID not found. Please check the ID and try again.');
@@ -367,7 +368,7 @@ const MOCK_CHAT_HISTORY = [
 
 function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack: () => void }) {
     const [message, setMessage] = useState('');
-    const partner = Object.values(MOCK_USERS).find(u => partnerId.includes(u.email.split('@')[0])) || { name: 'Unknown User' };
+    const partner = Object.values(MOCK_USERS).find(u => partnerId.includes(u.email.split('@')[0])) || { name: 'Unknown User', email: '' };
 
     const ReplyPreview = ({ name, text }: { name: string; text: string }) => (
         <div className="bg-black/20 p-2 rounded-lg mb-1 border-l-2 border-blue-400">

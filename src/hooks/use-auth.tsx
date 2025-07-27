@@ -6,11 +6,11 @@ import { useRouter } from 'next/navigation';
 import type { User, Rank } from '@/lib/types';
 
 // Mock user data - EXPORTED so other components can use it for mock data.
-export const MOCK_USERS: Record<string, Omit<User, 'email'>> = {
-  'errante@elmiclan.com': { id: '1789785831533101057', name: 'Alex Erra', rank: 'Errante', profile: { skills: ['Foraging', 'Basic First Aid'], achievements: ['Joined the clan'], activity: 'Low' } },
-  'scout@elmiclan.com': { id: '1789785835827363841', name: 'Sam Scout', rank: 'Scout', profile: { skills: ['Pathfinding', 'Stealth', 'Archery'], achievements: ['Mapped the Whispering Woods', 'First to spot the northern ridge'], activity: 'High' } },
-  'conquistador@elmiclan.com': { id: '1789785839425519619', name: 'Chris Conq', rank: 'Conquistador', profile: { skills: ['Leadership', 'Advanced Combat', 'Strategy'], achievements: ['Claimed the Sunstone Quarry', 'Established 3 outposts'], activity: 'Medium' } },
-  'admin@elmiclan.com': { id: '1789785842289967111', name: 'Ada Admin', rank: 'Admin', profile: { skills: ['System Administration', 'Clan Management'], achievements: ['Built the portal'], activity: 'High' } },
+export const MOCK_USERS: Record<string, User> = {
+  'errante@elmiclan.com': { id: '1789785831533101057', name: 'Alex Erra', rank: 'Errante', email: 'errante@elmiclan.com', profile: { skills: ['Foraging', 'Basic First Aid'], achievements: ['Joined the clan'], activity: 'Low' } },
+  'scout@elmiclan.com': { id: '1789785835827363841', name: 'Sam Scout', rank: 'Scout', email: 'scout@elmiclan.com', profile: { skills: ['Pathfinding', 'Stealth', 'Archery'], achievements: ['Mapped the Whispering Woods', 'First to spot the northern ridge'], activity: 'High' } },
+  'conquistador@elmiclan.com': { id: '1789785839425519619', name: 'Chris Conq', rank: 'Conquistador', email: 'conquistador@elmiclan.com', profile: { skills: ['Leadership', 'Advanced Combat', 'Strategy'], achievements: ['Claimed the Sunstone Quarry', 'Established 3 outposts'], activity: 'Medium' } },
+  'admin@elmiclan.com': { id: '1789785842289967111', name: 'Ada Admin', rank: 'Admin', email: 'admin@elmiclan.com', profile: { skills: ['System Administration', 'Clan Management'], achievements: ['Built the portal'], activity: 'High' } },
 };
 
 interface AuthContextType {
