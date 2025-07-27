@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, Image as ImageIcon, PlusCircle, Tag, UserPlus, Smile, Camera } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, PlusCircle, Tag, UserPlus, Smile, Camera } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
@@ -419,7 +419,7 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
                         placeholder="Message..."
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        className="flex-grow border-none focus-visible:ring-0 bg-transparent resize-none text-white placeholder:text-muted-foreground py-2"
+                        className="flex-grow border-none focus-visible:ring-0 bg-transparent resize-none text-white placeholder:text-muted-foreground py-2 min-h-[40px]"
                         rows={1}
                     />
                     <div className="flex items-center gap-1">
@@ -493,7 +493,7 @@ export default function MessengerPage() {
 
   return (
     <AnimatedPage>
-      <div className="w-full h-screen overflow-hidden bg-background">
+      <div className="h-screen w-full overflow-hidden bg-background">
        {mode === 'clan' && (
         <div className="space-y-6 p-4 md:p-6">
           <ClanMessageForm userRank={user.rank} />
@@ -505,3 +505,5 @@ export default function MessengerPage() {
     </AnimatedPage>
   );
 }
+
+    
