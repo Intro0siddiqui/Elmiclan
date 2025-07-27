@@ -73,6 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         activity: 'New',
       },
     };
+    // Also add the new user to our mock database so they can be found by others
+    MOCK_USERS[email.toLowerCase()] = newUser;
+    
     setUser(newUser);
     localStorage.setItem('elmiclan-user', JSON.stringify(newUser));
     router.push('/dashboard');
