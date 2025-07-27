@@ -32,7 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const storedUser = localStorage.getItem('elmiclan-user');
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        // Re-sync with MOCK_USERS to ensure data is not stale
+        const freshUser = MOCK_USERS[parsedUser.email.toLowerCase()];
+        if (freshUser) {
+          setUser(freshUser);
+        } else {
+          setUser(parsedUser);
+        }
       }
     } catch (error) {
       console.error("Failed to parse user from localStorage", error);
