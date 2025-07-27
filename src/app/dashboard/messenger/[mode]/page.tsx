@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { sendSecureMessage } from '@/ai/flows/send-secure-message';
 import { fetchMessages, FetchMessagesOutput } from '@/ai/flows/fetch-messages';
-import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, Image as ImageIcon, PlusCircle, Tag, UserPlus, Smile } from 'lucide-react';
+import { Loader2, Send, Users, MessageSquarePlus, ArrowLeft, Inbox, Phone, Video, Mic, Image as ImageIcon, PlusCircle, Tag, UserPlus, Smile, Camera } from 'lucide-react';
 import { MOCK_USERS } from '@/hooks/use-auth';
 import type { Rank, User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
@@ -410,20 +410,28 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
             </ScrollArea>
 
             {/* Message Input Footer */}
-            <div className="flex items-center p-2 border-t bg-secondary/50 rounded-b-lg">
-                <Button variant="ghost" size="icon"><ImageIcon className="text-primary" /></Button>
-                <Textarea
-                    placeholder="Message..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    className="flex-grow border-none focus-visible:ring-0 bg-transparent resize-none"
-                    rows={1}
-                />
-                 <div className="flex items-center">
-                    <Button variant="ghost" size="icon"><Mic /></Button>
-                    <Button variant="ghost" size="icon"><PlusCircle /></Button>
-                    <Button variant="ghost" size="icon"><Send /></Button>
+            <div className="flex items-center gap-2 p-2 border-t">
+                <div className="flex-grow flex items-center bg-zinc-800 rounded-full px-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                        <Smile className="text-muted-foreground" />
+                    </Button>
+                    <Textarea
+                        placeholder="Message..."
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        className="flex-grow border-none focus-visible:ring-0 bg-transparent resize-none text-white placeholder:text-muted-foreground"
+                        rows={1}
+                    />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                        <Camera className="text-muted-foreground" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                        <Mic className="text-muted-foreground" />
+                    </Button>
                 </div>
+                <Button variant="default" size="icon" className="h-10 w-10 rounded-full bg-primary flex-shrink-0">
+                    {message ? <Send /> : <PlusCircle />}
+                </Button>
             </div>
         </div>
     );
