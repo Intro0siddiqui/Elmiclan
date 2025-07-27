@@ -30,6 +30,7 @@ import { rankHierarchy } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { AnimatedPage } from '@/components/AnimatedPage';
 import { Separator } from '@/components/ui/separator';
+import { ClientOnly } from '@/components/ui/client-only';
 
 const clanMessageFormSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
@@ -314,10 +315,12 @@ function PartnerFinder({ currentUser, onSelectPartner, refProp }: { currentUser:
         <CardDescription>Browse the directory or connect directly via UID.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="your-id">Your UID (For Manual Invites)</Label>
-          <Input id="your-id" readOnly value={currentUser.id} />
-        </div>
+        <ClientOnly>
+          <div className="space-y-2">
+            <Label htmlFor="your-id">Your UID (For Manual Invites)</Label>
+            <Input id="your-id" readOnly value={currentUser.id} />
+          </div>
+        </ClientOnly>
         
         <Separator />
         
