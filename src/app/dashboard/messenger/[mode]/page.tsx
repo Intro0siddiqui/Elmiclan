@@ -410,7 +410,7 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
             </ScrollArea>
 
             {/* Message Input Footer */}
-            <div className="flex items-center gap-2 px-2 py-1 border-t">
+            <div className="flex items-end gap-2 px-2 py-1 border-t">
                 <div className="flex-grow flex items-center bg-zinc-800 rounded-full px-2">
                     <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
                         <Smile className="text-muted-foreground" />
@@ -422,12 +422,14 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
                         className="flex-grow border-none focus-visible:ring-0 bg-transparent resize-none text-white placeholder:text-muted-foreground py-2"
                         rows={1}
                     />
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                        <Camera className="text-muted-foreground" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                        <Mic className="text-muted-foreground" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                            <Camera className="text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                            <Mic className="text-muted-foreground" />
+                        </Button>
+                    </div>
                 </div>
                 <Button variant="default" size="icon" className="h-9 w-9 rounded-full bg-primary flex-shrink-0">
                     {message ? <Send /> : <PlusCircle />}
