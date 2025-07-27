@@ -226,7 +226,7 @@ function ConversationList({ onSelectConversation, onFindMore }: { onSelectConver
         {conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 space-y-4 border-2 border-dashed rounded-lg">
             <Inbox className="h-10 w-10"/>
-            <h3 className="text-lg font-semibold">No Recent Conversations</h3>
+            <h3 className="text-lg font-semibold">No recent conversations</h3>
             <p className="text-sm">You haven't started any private chats yet. Find a partner below to begin.</p>
           </div>
         ) : (
@@ -367,7 +367,7 @@ const MOCK_CHAT_HISTORY = [
 
 function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack: () => void }) {
     const [message, setMessage] = useState('');
-    const partner = Object.values(MOCK_USERS).find(u => partnerId.includes(u.email.split('@')[0])) || { name: 'Unknown User', email: '' };
+    const partner = Object.values(MOCK_USERS).find(u => u.email && partnerId.includes(u.email.split('@')[0])) || { name: 'Unknown User', email: '' };
 
     const ReplyPreview = ({ name, text }: { name: string; text: string }) => (
         <div className="bg-black/20 p-2 rounded-lg mb-1 border-l-2 border-blue-400">
