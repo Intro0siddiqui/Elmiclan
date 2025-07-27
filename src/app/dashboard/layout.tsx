@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { DashboardSidebar } from '@/components/dashboard/sidebar';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({
   children,
@@ -15,6 +16,7 @@ export default function DashboardLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -35,6 +37,8 @@ export default function DashboardLayout({
       </div>
     );
   }
+  
+  const isMessengerPage = pathname.includes('/dashboard/messenger');
 
   return (
     <SidebarProvider>
@@ -44,9 +48,11 @@ export default function DashboardLayout({
             <div className="flex items-center gap-2 md:hidden">
               <SidebarTrigger />
             </div>
-            <div className="ml-auto">
-              <UserNav />
-            </div>
+            {!isMessengerPage && (
+              <div className="ml-auto">
+                <UserNav />
+              </div>
+            )}
         </header>
         <main className="flex-1">
           {children}
