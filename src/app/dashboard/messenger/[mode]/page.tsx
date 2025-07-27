@@ -304,8 +304,6 @@ function PartnerFinder({ currentUser, onSelectPartner, refProp }: { currentUser:
       return rankHierarchy[user.rank] <= rankHierarchy[currentUser.rank];
     });
   
-  const currentUserMatrixId = `@${currentUser.email.split('@')[0]}:matrix.org`;
-
   return (
     <Card ref={refProp}>
       <CardHeader>
@@ -317,8 +315,8 @@ function PartnerFinder({ currentUser, onSelectPartner, refProp }: { currentUser:
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="your-id">Your Matrix ID (For Manual Invites)</Label>
-          <Input id="your-id" readOnly value={currentUserMatrixId} />
+          <Label htmlFor="your-id">Your UID (For Manual Invites)</Label>
+          <Input id="your-id" readOnly value={currentUser.id} />
         </div>
         
         <Separator />
