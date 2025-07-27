@@ -46,9 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     const mockUser = MOCK_USERS[email.toLowerCase()];
     if (mockUser) {
-      const fullUser: User = { ...mockUser, email };
-      setUser(fullUser);
-      localStorage.setItem('elmiclan-user', JSON.stringify(fullUser));
+      setUser(mockUser);
+      localStorage.setItem('elmiclan-user', JSON.stringify(mockUser));
       router.push('/dashboard');
     } else {
       setLoading(false);
