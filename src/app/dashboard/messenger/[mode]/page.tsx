@@ -268,7 +268,7 @@ function UidConnector({ onSelectPartner }: { onSelectPartner: (matrixId: string)
     const handleConnect = () => {
         setError('');
         const user = Object.values(MOCK_USERS).find(u => u.id === uid);
-        if (user) {
+        if (user && user.email) {
             const matrixId = `@${user.email.split('@')[0]}:matrix.org`;
             onSelectPartner(matrixId);
         } else {
@@ -331,16 +331,17 @@ function PartnerFinder({ currentUser, onSelectPartner, refProp }: { currentUser:
             <div className="space-y-3">
             {potentialPartners.length > 0 ? (
                 potentialPartners.map(user => {
-                const userMatrixId = `@${user.email.split('@')[0]}:matrix.org`;
-                return (
-                    <div key={user.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
-                    <div>
-                        <p className="font-semibold">{user.name} ({user.rank})</p>
-                        <p className="text-xs text-muted-foreground">UID: {user.id}</p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => onSelectPartner(userMatrixId)}>Select</Button>
-                    </div>
-                );
+                    if (!user.email) return null;
+                    const userMatrixId = `@${user.email.split('@')[0]}:matrix.org`;
+                    return (
+                        <div key={user.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
+                        <div>
+                            <p className="font-semibold">{user.name} ({user.rank})</p>
+                            <p className="text-xs text-muted-foreground">UID: {user.id}</p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => onSelectPartner(userMatrixId)}>Select</Button>
+                        </div>
+                    );
                 })
             ) : (
                 <p className="text-sm text-center text-muted-foreground">No available partners of your rank right now.</p>
@@ -448,7 +449,7 @@ function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack
             {/* Message Input Footer */}
             <div className="flex items-end gap-2 px-2 py-1 border-t">
                 <div className="flex-grow flex items-center bg-zinc-800 rounded-full px-2">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground">
+                     <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground">
                         <Smile />
                     </Button>
                     <Textarea
