@@ -2,7 +2,7 @@
 
 ## Core Features:
 
-- Invite Validation: Enforces restricted access using unique invite codes for new user registration.
+- Invite Validation: Enforces restricted access using unique invite codes for new user registration. Codes must be validated through a secure backend flow.
 - Ranked Dashboards: Adapt the UI dynamically to display content and functionalities based on user rank (Errante, Scout, Conquistador, Admin).
 - Dynamic Navigation: Show/hide navigation items based on user roles, permissions, and potentially other factors.
 - Rank Advisor: The tool suggests paths to rank advancement based on the user's current profile.

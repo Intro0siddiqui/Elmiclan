@@ -42,6 +42,7 @@ This document serves as a high-level guide to the ElmiClan Portal codebase. It m
 - **`src/ai/flows/set-custom-claim.ts`**: A secure, server-side Genkit flow for administrators to assign ranks to users. This is a critical piece of the access control system.
 - **`src/ai/flows/rank-advisor.ts`**: An AI-powered Genkit flow that provides personalized recommendations to users on how to advance in rank.
 - **`src/ai/flows/send-secure-message.ts`**: A secure, server-side Genkit flow that uses the `matrix-js-sdk` to send E2EE messages. This keeps all sensitive credentials and logic off the client.
+- **`src/ai/flows/fetch-messages.ts`**: A secure, server-side Genkit flow that uses the `matrix-js-sdk` to fetch E2EE messages. This keeps all sensitive credentials and logic off the client.
 
 ## 7. Deployment & CI/CD
 
