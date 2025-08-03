@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Logo } from '@/components/icons';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { VALID_INVITE_CODES } from '@/lib/constants';
+import { validateInviteCode } from '@/ai/flows/validate-invite-code';
 import { Loader2 } from 'lucide-react';
 import { ClientOnly } from '@/components/ui/client-only';
 
@@ -38,13 +38,14 @@ export default function SignupPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      // NOTE: This is an insecure, client-side validation for demo purposes.
-      // The real implementation uses the `validateInviteCode` Genkit flow.
-      if (!VALID_INVITE_CODES.includes(values.inviteCode.toUpperCase())) {
-        form.setError('inviteCode', { type: 'manual', message: 'Invalid invite code.' });
+      const result = await validateInviteCode({ inviteCode: values.inviteCode });
+
+      if (!result.success || !result.data.isValid) {
+        form.setError('inviteCode', { type: 'manual', message: result.error || 'Invalid invite code.' });
         setIsLoading(false);
         return;
       }
+      
       // New users start as 'Errante'
       await signup(values.email, 'Errante');
     } catch (error) {
@@ -115,16 +116,6 @@ export default function SignupPage() {
                 </p>
             </CardFooter>
           </ClientOnly>
-        </Card>
-        <Card className="mt-6 bg-secondary/50">
-          <CardHeader>
-            <CardTitle className="text-sm">Valid Invite Codes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xs text-muted-foreground space-y-1">
-                {VALID_INVITE_CODES.map(code => <p key={code}>{code}</p>)}
-            </div>
-          </CardContent>
         </Card>
       </div>
     </div>

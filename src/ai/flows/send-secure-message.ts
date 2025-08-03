@@ -9,8 +9,9 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-// NOTE: To prevent server startup issues, the Matrix SDK is imported dynamically
-// inside the flow itself, not at the top level.
+import { getMatrixClient } from '../matrix-client';
+import { env } from '@/env.mjs';
+import { FlowResult } from '@/lib/types';
 
 const SendSecureMessageInputSchema = z.object({
   toUserId: z.string().optional().describe('The Matrix ID of the recipient for a direct message. If omitted, sends to the main clan chat.'),
@@ -20,14 +21,16 @@ const SendSecureMessageInputSchema = z.object({
 export type SendSecureMessageInput = z.infer<typeof SendSecureMessageInputSchema>;
 
 const SendSecureMessageOutputSchema = z.object({
-  success: z.boolean(),
-  roomId: z.string().optional(),
-  error: z.string().optional(),
+  roomId: z.string(),
 });
 export type SendSecureMessageOutput = z.infer<typeof SendSecureMessageOutputSchema>;
 
+const SendSecureMessageFlowResultSchema = z.union([
+  z.object({ success: z.literal(true), data: SendSecureMessageOutputSchema }),
+  z.object({ success: z.literal(false), error: z.string() }),
+]);
 
-export async function sendSecureMessage(input: SendSecureMessageInput): Promise<SendSecureMessageOutput> {
+export async function sendSecureMessage(input: SendSecureMessageInput): Promise<FlowResult<SendSecureMessageOutput>> {
   return sendSecureMessageFlow(input);
 }
 
@@ -37,38 +40,11 @@ const sendSecureMessageFlow = ai.defineFlow(
   {
     name: 'sendSecureMessageFlow',
     inputSchema: SendSecureMessageInputSchema,
-    outputSchema: SendSecureMessageOutputSchema,
+    outputSchema: SendSecureMessageFlowResultSchema,
   },
-  async ({ toUserId, message, rankRestricted }) => {
-    let client: any = null;
+  async ({ toUserId, message, rankRestricted }): Promise<FlowResult<SendSecureMessageOutput>> => {
     try {
-      const sdk = await import('matrix-js-sdk');
-
-      const matrixUserId = process.env.MATRIX_USER_ID || '@elmiclan-bot:matrix.org';
-      const matrixAccessToken = process.env.MATRIX_ACCESS_TOKEN || 'syt_ZWxtaWNsYW4tYm90_aVJhZGRpY2xlQnJvY2NvbGk_U3VwZXJTZWNyZXQ';
-      const matrixBaseUrl = process.env.MATRIX_BASE_URL || 'https://matrix.org';
-      
-      console.log(`Initializing Matrix client for ${matrixUserId}`);
-      client = sdk.createClient({
-        baseUrl: matrixBaseUrl,
-        accessToken: matrixAccessToken,
-        userId: matrixUserId,
-      });
-
-      console.log('Initializing crypto store...');
-      await client.initCrypto();
-      
-      console.log('Starting client...');
-      await client.startClient({ initialSyncLimit: 10 });
-      
-      await new Promise<void>((resolve) => {
-        client.on('sync', (state: string) => {
-          if (state === 'PREPARED') {
-            console.log('Client synced and prepared.');
-            resolve();
-          }
-        });
-      });
+      const client = await getMatrixClient();
 
       let roomId: string;
       
@@ -85,14 +61,15 @@ const sendSecureMessageFlow = ai.defineFlow(
         console.log(`Created DM room ${roomId} for ${toUserId}`);
       } else {
         // Logic for Unified Group Chat
-        const clanRoomId = process.env.MATRIX_CLAN_ROOM_ID || '!YourMainClanRoomID:matrix.org';
+        const clanRoomId = env.MATRIX_CLAN_ROOM_ID;
         roomId = clanRoomId;
         console.log(`Targeting unified clan chat room: ${roomId}`);
         
-        const room = client.getRoom(clanRoomId);
+        let room = client.getRoom(clanRoomId);
         if (!room) {
             console.log(`Bot is not in room ${clanRoomId}. Attempting to join...`);
             await client.joinRoom(clanRoomId);
+            room = client.getRoom(clanRoomId);
             console.log(`Successfully joined room ${clanRoomId}.`);
         }
       }
@@ -115,7 +92,7 @@ const sendSecureMessageFlow = ai.defineFlow(
       await client.sendMessage(roomId, content);
       console.log('Message sent successfully.');
       
-      return { success: true, roomId: roomId };
+      return { success: true, data: { roomId } };
 
     } catch (e: any) {
       console.error('Matrix send failed:', e);
@@ -129,11 +106,6 @@ const sendSecureMessageFlow = ai.defineFlow(
         success: false,
         error: e.message || 'An unknown error occurred during the Matrix operation.',
       };
-    } finally {
-      if (client) {
-        console.log('Stopping Matrix client.');
-        client.stopClient();
-      }
     }
   }
 );

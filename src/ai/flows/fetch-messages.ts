@@ -8,10 +8,10 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { MessageSchema, rankHierarchy, Rank } from '@/lib/types';
+import { MessageSchema, rankHierarchy, Rank, FlowResult } from '@/lib/types';
 import { getUserRank } from './get-user-rank';
-// NOTE: To prevent server startup issues, the Matrix SDK is imported dynamically
-// inside the flow itself, not at the top level.
+import { getMatrixClient } from '../matrix-client';
+import { env } from '@/env.mjs';
 
 const FetchMessagesInputSchema = z.object({
   from: z.string().optional().describe('The pagination token from a previous request to fetch the next batch of older messages.'),
@@ -26,8 +26,17 @@ const FetchMessagesOutputSchema = z.object({
 });
 export type FetchMessagesOutput = z.infer<typeof FetchMessagesOutputSchema>;
 
+const FetchMessagesFlowResultSchema = z.union([
+  z.object({ success: z.literal(true), data: FetchMessagesOutputSchema }),
+  z.object({ success: z.literal(false), error: z.string() }),
+]);
+
 export async function fetchMessages(input: FetchMessagesInput): Promise<FetchMessagesOutput> {
-  return fetchMessagesFlow(input);
+  const result = await fetchMessagesFlow(input);
+  if (!result.success) {
+    throw new Error(result.error);
+  }
+  return result.data;
 }
 
 const RANK_RESTRICTED_PREFIX = '[RANK_RESTRICTED]';
@@ -36,41 +45,26 @@ const fetchMessagesFlow = ai.defineFlow(
   {
     name: 'fetchMessagesFlow',
     inputSchema: FetchMessagesInputSchema,
-    outputSchema: FetchMessagesOutputSchema,
+    outputSchema: FetchMessagesFlowResultSchema,
   },
-  async ({ from, limit, requestingUserRank }) => {
-    let client: any = null;
+  async ({ from, limit, requestingUserRank }): Promise<FlowResult<FetchMessagesOutput>> => {
     try {
-        const sdk = await import('matrix-js-sdk');
-
-        const matrixUserId = process.env.MATRIX_USER_ID || '@elmiclan-bot:matrix.org';
-        const matrixAccessToken = process.env.MATRIX_ACCESS_TOKEN || 'syt_ZWxtaWNsYW4tYm90_aVJhZGRpY2xlQnJvY2NvbGk_U3VwZXJTZWNyZXQ';
-        const matrixBaseUrl = process.env.MATRIX_BASE_URL || 'https://matrix.org';
-        const clanRoomId = process.env.MATRIX_CLAN_ROOM_ID || '!YourMainClanRoomID:matrix.org';
+        const client = await getMatrixClient();
+        const clanRoomId = env.MATRIX_CLAN_ROOM_ID;
         
-        client = sdk.createClient({
-            baseUrl: matrixBaseUrl,
-            accessToken: matrixAccessToken,
-            userId: matrixUserId,
-        });
-
-        await client.startClient({ initialSyncLimit: 1 });
-        
-        await new Promise<void>((resolve) => {
-            client.on('sync', (state: string) => {
-                if (state === 'PREPARED') resolve();
-            });
-        });
-
-        const room = client.getRoom(clanRoomId);
+        let room = client.getRoom(clanRoomId);
         if (!room) {
-            throw new Error('Clan chat room not found or bot is not a member.');
+            const joinedRoom = await client.joinRoom(clanRoomId);
+            room = client.getRoom(joinedRoom.room_id);
+            if(!room) {
+              throw new Error('Clan chat room not found and could not be joined.');
+            }
         }
 
         const timeline = await client.scrollback(room, limit, from);
         
         if (!timeline) {
-            return { messages: [], nextFrom: null };
+            return { success: true, data: { messages: [], nextFrom: null } };
         }
 
         const messages = await Promise.all(
@@ -124,18 +118,19 @@ const fetchMessagesFlow = ai.defineFlow(
         );
         
         return {
-            messages: messages.filter(Boolean) as any[], // Filter out any nulls from async ops
-            nextFrom: timeline.end,
+            success: true,
+            data: {
+                messages: messages.filter(Boolean) as any[], // Filter out any nulls from async ops
+                nextFrom: timeline.end,
+            }
         };
 
     } catch (e: any) {
         console.error('Matrix fetch failed:', e);
-        // Don't rethrow, just return an empty set.
-        return { messages: [], nextFrom: null };
-    } finally {
-        if (client) {
-            client.stopClient();
-        }
+        return { 
+            success: false, 
+            error: e.message || 'An unknown error occurred during the Matrix operation.' 
+        };
     }
   }
 );
