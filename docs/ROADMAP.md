@@ -22,11 +22,11 @@ An exclusive, gamified portal for clan members with role-based access and AI-pow
   - [ ] Replace all placeholder images and content.
   - [ ] Conduct performance testing and optimize loading times.
   - [ ] Ensure the CI/CD pipeline is fully operational.
-  - [ ] Remove all hardcoded secrets and use environment variables exclusively.
-  - [ ] Implement singleton pattern for Matrix client to optimize performance.
-  - [ ] Move VALID_INVITE_CODES to Firestore and enforce validation through Genkit flow.
-  - [ ] Standardize error response format for all Genkit flows.
-  - [ ] Replace MOCK_USERS with real database implementation.
+  - [x] Remove all hardcoded secrets and use environment variables exclusively.
+  - [x] Implement singleton pattern for Matrix client to optimize performance.
+  - [x] Move VALID_INVITE_CODES to Firestore and enforce validation through Genkit flow.
+  - [x] Standardize error response format for all Genkit flows.
+  - [x] Replace MOCK_USERS with real database implementation.
 - **File / Module Touches**: Entire codebase.
 - **Status**: In Progress
 - **Notes / Open Questions**: None.

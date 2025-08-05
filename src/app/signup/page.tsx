@@ -11,9 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Logo } from '@/components/icons';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-supabase-auth';
 import { useToast } from '@/hooks/use-toast';
-import { validateInviteCode } from '@/ai/flows/validate-invite-code';
+import { validateInviteCodeFlow } from '@/ai/flows/validate-invite-code';
 import { Loader2 } from 'lucide-react';
 import { ClientOnly } from '@/components/ui/client-only';
 
@@ -38,7 +38,7 @@ export default function SignupPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const result = await validateInviteCode({ inviteCode: values.inviteCode });
+      const result = await validateInviteCodeFlow({ inviteCode: values.inviteCode });
 
       if (!result.success || !result.data.isValid) {
         form.setError('inviteCode', { type: 'manual', message: result.error || 'Invalid invite code.' });
@@ -46,8 +46,7 @@ export default function SignupPage() {
         return;
       }
       
-      // New users start as 'Errante'
-      await signup(values.email, 'Errante');
+      await signup(values.email, result.data.rank as Rank);
     } catch (error) {
       toast({
         variant: 'destructive',

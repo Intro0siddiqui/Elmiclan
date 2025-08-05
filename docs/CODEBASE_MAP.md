@@ -21,8 +21,8 @@ This document serves as a high-level guide to the ElmiClan Portal codebase. It m
 ## 3. State Management
 
 - **`src/store/userStore.ts`**: The global **Zustand store**. It is designed to hold client-side user state like `userRank` and `permissions` to make them easily accessible throughout the UI without prop drilling.
-- **`src/hooks/use-auth.tsx`**: The primary authentication hook. It manages the current user's state (login, logout, signup), and stores the user object in `localStorage` to persist the session.
-- **`src/hooks/useMissions.ts`**: An example **TanStack Query** hook. It demonstrates how to fetch, cache, and manage server state for a 'missions' collection from Firestore.
+- **`src/hooks/use-auth.tsx`**: The primary authentication hook. It manages the current user's state (login, logout, signup) using Supabase Auth, and stores the user object in `localStorage` to persist the session.
+- **`src/hooks/use-missions.ts`**: An example **TanStack Query** hook. It demonstrates how to fetch, cache, and manage server state for a 'missions' collection from Firestore.
 
 ## 4. Access Control & Permissions
 
@@ -31,14 +31,13 @@ This document serves as a high-level guide to the ElmiClan Portal codebase. It m
 
 ## 5. Routing & Navigation
 
-- **`src/middleware.ts`**: The **Next.js Middleware** file. It's currently disabled to avoid conflicts with the `localStorage`-based session management but is intended to protect all routes under `/dashboard/*` by checking for a valid session cookie.
 - **`src/lib/constants.ts`**: Defines application-wide constants, most importantly `NAV_ITEMS`, which an-configures the labels, icons, and minimum required rank for each item in the dashboard sidebar.
 
 ## 6. Backend Logic & AI Flows (Genkit)
 
 - **`src/ai/genkit.ts`**: Initializes and configures the core Genkit `ai` instance, setting up the connection to the Google AI provider.
 - **`src/ai/dev.ts`**: The development entry point for Genkit, which imports and registers all active flows.
-- **`src/ai/flows/validate-invite-code.ts`**: A secure, server-side Genkit flow for validating user invite codes. This is the backend logic for the signup process.
+- **`src/ai/flows/validate-invite-code.ts`**: A secure, server-side Genkit flow for validating user invite codes from Firestore. This is the backend logic for the signup process.
 - **`src/ai/flows/set-custom-claim.ts`**: A secure, server-side Genkit flow for administrators to assign ranks to users. This is a critical piece of the access control system.
 - **`src/ai/flows/rank-advisor.ts`**: An AI-powered Genkit flow that provides personalized recommendations to users on how to advance in rank.
 - **`src/ai/flows/send-secure-message.ts`**: A secure, server-side Genkit flow that uses the `matrix-js-sdk` to send E2EE messages. This keeps all sensitive credentials and logic off the client.

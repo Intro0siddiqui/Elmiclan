@@ -14,6 +14,7 @@
   "dependencies": {
     "@casl/ability": "^6.7.1",
     "@casl/react": "^3.1.0",
+    "@genkit-ai/flow": "^0.5.17",
     "@genkit-ai/googleai": "^1.14.1",
     "@genkit-ai/next": "^1.14.1",
     "@hookform/resolvers": "^4.1.3",

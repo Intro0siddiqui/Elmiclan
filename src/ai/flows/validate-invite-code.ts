@@ -1,45 +1,56 @@
-'use server';
-
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { defineFlow } from '@genkit-ai/flow';
+import { z } from 'zod';
+import { supabase } from '@/lib/supabase';
 import { FlowResult } from '@/lib/types';
 
-const ValidateInviteCodeInputSchema = z.object({
-  inviteCode: z.string(),
-});
-
-const ValidateInviteCodeOutputSchema = z.object({
-  isValid: z.boolean(),
-});
-
-const ValidateInviteCodeFlowResultSchema = z.union([
-  z.object({ success: z.literal(true), data: ValidateInviteCodeOutputSchema }),
-  z.object({ success: z.literal(false), error: z.string() }),
-]);
-
-export async function validateInviteCode(
-  input: z.infer<typeof ValidateInviteCodeInputSchema>
-): Promise<FlowResult<z.infer<typeof ValidateInviteCodeOutputSchema>>> {
-  return validateInviteCodeFlow(input);
-}
-
-export const validateInviteCodeFlow = ai.defineFlow(
+export const validateInviteCodeFlow = defineFlow(
   {
     name: 'validateInviteCodeFlow',
-    inputSchema: ValidateInviteCodeInputSchema,
-    outputSchema: ValidateInviteCodeFlowResultSchema,
+    inputSchema: z.object({ inviteCode: z.string() }),
+    outputSchema: z.union([
+      z.object({ success: z.literal(true), data: z.object({ isValid: z.literal(true), rankId: z.number() }) }),
+      z.object({ success: z.literal(false), error: z.string() }),
+    ]),
   },
-  async ({ inviteCode }) => {
-    // TODO: Implement database lookup
-    if (['ELMI-2024', 'SCOUT-AHEAD', 'CONQUER'].includes(inviteCode.toUpperCase())) {
+  async ({ inviteCode }: { inviteCode: string }): Promise<FlowResult<{ isValid: boolean; rankId?: number }>> => {
+    try {
+      const { data, error } = await supabase
+        .from('invites')
+        .select('code, rank_id, uses_left')
+        .eq('code', inviteCode)
+        .single();
+
+      if (error || !data) {
+        return { success: false, error: 'Invalid invite code.' };
+      }
+
+      if (data.uses_left <= 0) {
+        return { success: false, error: 'Invite code has no remaining uses.' };
+      }
+
+      const { error: updateError } = await supabase
+        .from('invites')
+        .update({ uses_left: data.uses_left - 1 })
+        .eq('code', inviteCode);
+
+      if (updateError) {
+        console.error('Failed to update invite uses:', updateError);
+        return { success: false, error: 'Failed to validate invite code.' };
+      }
+
       return {
         success: true,
-        data: { isValid: true },
+        data: {
+          isValid: true,
+          rankId: data.rank_id
+        }
+      };
+    } catch (e: any) {
+      console.error('Invite validation error:', e);
+      return {
+        success: false,
+        error: e.message || 'An error occurred during invite validation.'
       };
     }
-    return {
-      success: false,
-      error: 'Invalid invite code.',
-    };
   }
 );

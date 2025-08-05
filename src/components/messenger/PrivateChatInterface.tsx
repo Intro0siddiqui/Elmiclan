@@ -13,13 +13,13 @@ import { ArrowLeft, Phone, Video, Mic, PlusCircle, Smile, Camera, Send } from 'l
 const MOCK_CHAT_HISTORY = [
     { id: 2, sender: 'me', text: 'Look similar to where u live' },
     { id: 3, sender: 'me', text: 'Kinda' },
-    { id: 4, sender: 'other', text: 'That's where we live' },
-    { id: 5, sender: 'me', text: 'Look similar to where u live', repliedTo: { name: 'Ada Admin', text: 'That's where we live' } },
+    { id: 4, sender: 'other', text: "That's where we live" },
+    { id: 5, sender: 'me', text: 'Look similar to where u live', repliedTo: { name: 'Ada Admin', text: "That's where we live" } },
     { id: 6, sender: 'me', text: 'I thought so' },
     { id: 7, sender: 'me', text: 'But then I thought my memory is weak' },
     { id: 8, sender: 'other', text: 'It is', repliedTo: { name: 'You', text: 'But then I thought my memory is weak' } },
-    { id: 9, sender: 'me', text: 'It isn't because I was right' },
-    { id: 10, sender: 'me', text: 'But I just didn't trusted it' },
+    { id: 9, sender: 'me', text: "It isn't because I was right" },
+    { id: 10, sender: 'me', text: "But I just didn't trusted it" },
 ];
 
 export function PrivateChatInterface({ partnerId, onBack }: { partnerId: string, onBack: () => void }) {
