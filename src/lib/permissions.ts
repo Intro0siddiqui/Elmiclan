@@ -1,35 +1,40 @@
-import { AbilityBuilder, createMongoAbility } from '@casl/ability';
-import type { AbilityClass, ExtractSubjectType, InferSubjects } from '@casl/ability';
+import { AbilityBuilder, createMongoAbility, MongoAbility, MongoQuery } from '@casl/ability';
+import type { ExtractSubjectType, InferSubjects } from '@casl/ability';
 import type { User, Rank } from './types';
 
-type Actions = 'manage' | 'create' | 'read' | 'update' | 'delete';
-type Subjects = InferSubjects<'Mission' | 'User' | 'all'>;
+export class Mission {
+  constructor(public status: string) {}
+}
 
-export type AppAbility = ReturnType<typeof createMongoAbility<[Actions, Subjects]>>;
-export const AppAbility = createMongoAbility as AbilityClass<AppAbility>;
+export class UserSubject {
+  constructor(public id: string) {}
+}
+
+type Actions = 'manage' | 'create' | 'read' | 'update' | 'delete';
+type Subjects = InferSubjects<typeof Mission | typeof UserSubject | 'all'>;
+
+export type AppAbility = MongoAbility<[Actions, Subjects], MongoQuery>;
 
 export function defineRulesFor(rank: Rank, user: User) {
-  const { can, cannot, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
+  const { can, cannot, build } = new AbilityBuilder(createMongoAbility);
 
   if (rank === 'Admin') {
-    can('manage', 'all'); // Admins can do anything
+    can('manage', 'all');
   } else {
-    can('read', 'User', { id: user.id }); // Users can read their own profile
+    can('read', UserSubject, { id: { $eq: user.id } });
   }
 
   if (rank === 'Scout') {
-    can('read', 'Mission');
-    can('update', 'Mission', { status: 'Active' }); // Scouts can update active missions
-  }
-  
-  if (rank === 'Conquistador') {
-    can('read', 'Mission');
-    can('create', 'Mission');
+    can('read', Mission);
+    can('update', Mission, { status: { $eq: 'Active' } });
   }
 
+  if (rank === 'Conquistador') {
+    can('read', Mission);
+    can('create', Mission);
+  }
 
   return build({
-    detectSubjectType: (item) =>
-      item.constructor as ExtractSubjectType<Subjects>,
+    detectSubjectType: (item) => item.constructor as ExtractSubjectType<Subjects>,
   });
 }

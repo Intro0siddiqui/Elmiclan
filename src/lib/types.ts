@@ -5,8 +5,13 @@ export type FlowResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-export const Rank = z.enum(["Errante", "Scout", "Conquistador", "Admin"]);
-export type Rank = z.infer<typeof Rank>;
+export enum Rank {
+  Errante = "Errante",
+  Scout = "Scout",
+  Conquistador = "Conquistador",
+  Admin = "Admin",
+}
+export const RankSchema = z.nativeEnum(Rank);
 
 export interface User {
   id: string;

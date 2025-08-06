@@ -4,7 +4,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import type { User, Rank } from '@/lib/types';
+import { Rank, rankHierarchy } from '@/lib/types';
+import type { User } from '@/lib/types';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -12,7 +13,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string) => Promise<void>;
   logout: () => void;
-  signup: (email: string, rank: Rank) => Promise<void>;
+  signup: (email: string, password: string, rank: Rank) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,10 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/');
   };
 
-  const signup = async (email: string, rank: Rank) => {
+  const signup = async (email: string, password: string, rank: Rank) => {
     // This will be handled by a server-side flow for security
     // For now, we just create the user
-    const { data, error } = await supabase.auth.signUp({ email });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
     if (!data.user) throw new Error('Signup failed: no user returned');
 
@@ -80,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: data.user.id,
       email: data.user.email,
       name: 'New Member',
-      rank_id: 1, // Default to Errant
+      rank_id: rankHierarchy[rank],
     });
 
     if (profileError) throw profileError;

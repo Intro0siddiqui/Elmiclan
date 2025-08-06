@@ -8,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { MessageSchema, rankHierarchy, Rank, FlowResult } from '@/lib/types';
+import { MessageSchema, rankHierarchy, Rank, FlowResult, RankSchema } from '@/lib/types';
 import { getUserRank } from './get-user-rank';
 import { getMatrixClient } from '../matrix-client';
 import { env } from '@/env.mjs';
@@ -98,7 +98,7 @@ const fetchMessagesFlow = ai.defineFlow(
                     const senderId = event.sender.split(':')[0].replace('@', '') + '@elmiclan.com';
                     const senderRankResponse = await getUserRank({ userId: senderId });
                     
-                    if (!senderRankResponse.rank || rankHierarchy[requestingUserRank] < rankHierarchy[senderRankResponse.rank]) {
+                    if (!senderRankResponse.success || !senderRankResponse.data.rank || rankHierarchy[requestingUserRank as keyof typeof rankHierarchy] < rankHierarchy[senderRankResponse.data.rank as keyof typeof rankHierarchy]) {
                         // If the requesting user has a lower rank, hide the content.
                         messageContent = "[Message content hidden due to rank restrictions]";
                     } else {

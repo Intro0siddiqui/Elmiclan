@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-supabase-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bot, Loader2, Sparkles, User } from 'lucide-react';

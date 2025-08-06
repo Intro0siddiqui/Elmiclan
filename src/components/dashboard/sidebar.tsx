@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/icons';
 import { NAV_ITEMS } from '@/lib/constants';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-supabase-auth';
 import { rankHierarchy } from '@/lib/types';
 
 export function DashboardSidebar() {

@@ -16,7 +16,7 @@ import { Loader2 } from 'lucide-react';
 export function MessageHistory({ currentUserRank }: { currentUserRank: Rank }) {
     const { data, error, fetchNextPage, hasNextPage, isFetchingNextPage, status } = useInfiniteQuery<FetchMessagesOutput>({
         queryKey: ['clanMessages', currentUserRank],
-        queryFn: ({ pageParam }) => fetchMessages({ from: pageParam as string | undefined, requestingUserRank: currentUserRank }),
+        queryFn: ({ pageParam }) => fetchMessages({ from: pageParam as string | undefined, limit: 25, requestingUserRank: currentUserRank }),
         getNextPageParam: lastPage => lastPage.nextFrom,
         initialPageParam: undefined,
         refetchInterval: 5000,

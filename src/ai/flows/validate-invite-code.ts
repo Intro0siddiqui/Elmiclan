@@ -8,7 +8,7 @@ export const validateInviteCodeFlow = defineFlow(
     name: 'validateInviteCodeFlow',
     inputSchema: z.object({ inviteCode: z.string() }),
     outputSchema: z.union([
-      z.object({ success: z.literal(true), data: z.object({ isValid: z.literal(true), rankId: z.number() }) }),
+      z.object({ success: z.literal(true), data: z.object({ isValid: z.boolean(), rankId: z.number().optional() }) }),
       z.object({ success: z.literal(false), error: z.string() }),
     ]),
   },

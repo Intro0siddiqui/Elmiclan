@@ -13,12 +13,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Logo } from '@/components/icons';
 import { useAuth } from '@/hooks/use-supabase-auth';
 import { useToast } from '@/hooks/use-toast';
-import { validateInviteCodeFlow } from '@/ai/flows/validate-invite-code';
+import { validateInviteCodeAction } from '@/app/actions';
 import { Loader2 } from 'lucide-react';
-import { ClientOnly } from '@/components/ui/client-only';
+import { type Rank } from '@/lib/types';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
+  password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
   inviteCode: z.string().min(1, { message: 'Invite code is required.' })
 });
 
@@ -38,15 +39,15 @@ export default function SignupPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const result = await validateInviteCodeFlow({ inviteCode: values.inviteCode });
+      const result = await validateInviteCodeAction(values.inviteCode);
 
       if (!result.success || !result.data.isValid) {
-        form.setError('inviteCode', { type: 'manual', message: result.error || 'Invalid invite code.' });
+        form.setError('inviteCode', { type: 'manual', message: (result as { error: string }).error || 'Invalid invite code.' });
         setIsLoading(false);
         return;
       }
       
-      await signup(values.email, result.data.rank as Rank);
+      await signup(values.email, values.password, result.data.rankId as unknown as Rank);
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -80,6 +81,19 @@ export default function SignupPage() {
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input placeholder="new.member@elmiclan.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="********" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

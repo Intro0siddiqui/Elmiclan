@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-supabase-auth";
 import { AdminDashboard } from "@/components/dashboard/rank-specific/admin-dashboard";
 import { ConquistadorDashboard } from "@/components/dashboard/rank-specific/conquistador-dashboard";
 import { ErranteDashboard } from "@/components/dashboard/rank-specific/errante-dashboard";

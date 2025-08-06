@@ -35,12 +35,12 @@ const getUserRankFlow = ai.defineFlow(
   },
   async ({ userId }) => {
     try {
-      // Query user profile with joined rank data
+      // Query user profile with joined rank data using foreign table
       const { data, error } = await supabase
         .from('profiles')
         .select(`
           id,
-          rank:ranks (
+          ranks (
             name
           )
         `)
@@ -54,8 +54,8 @@ const getUserRankFlow = ai.defineFlow(
         };
       }
 
-      // Extract rank name from joined data
-      const rankName = data.rank?.name;
+      // Extract rank name from joined data (ranks is always an array)
+      const rankName = data.ranks?.[0]?.name;
 
       return {
         success: true as const,

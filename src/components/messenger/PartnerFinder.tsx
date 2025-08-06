@@ -1,10 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { User } from '@/lib/types';
 import { rankHierarchy } from '@/lib/types';
-import { MOCK_USERS } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,20 +11,21 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ClientOnly } from '@/components/ui/client-only';
 import { Search, KeyRound } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 function UidConnector({ onSelectPartner }: { onSelectPartner: (matrixId: string) => void }) {
     const [uid, setUid] = useState('');
     const [error, setError] = useState('');
 
-    const handleConnect = () => {
+    const handleConnect = async () => {
         setError('');
-        const user = Object.values(MOCK_USERS).find(u => u.id === uid);
-        if (user && user.email) {
-            const matrixId = `@${user.email.split('@')[0]}:matrix.org`;
-            onSelectPartner(matrixId);
-        } else {
+        const { data, error } = await supabase.from('profiles').select('email').eq('id', uid).single();
+        if (error || !data) {
             setError('User ID not found. Please check the ID and try again.');
+            return;
         }
+        const matrixId = `@${data.email.split('@')[0]}:matrix.org`;
+        onSelectPartner(matrixId);
     };
     
     return (
@@ -49,12 +49,29 @@ function UidConnector({ onSelectPartner }: { onSelectPartner: (matrixId: string)
 }
 
 export function PartnerFinder({ currentUser, onSelectPartner, refProp }: { currentUser: User; onSelectPartner: (matrixId: string) => void; refProp: React.RefObject<HTMLDivElement>; }) {
-  const potentialPartners = Object.values(MOCK_USERS)
-    .filter(user => {
-      if (user.id === currentUser.id) return false;
-      // Show only users of the same or lower rank.
-      return rankHierarchy[user.rank] <= rankHierarchy[currentUser.rank];
-    });
+  const [potentialPartners, setPotentialPartners] = useState<User[]>([]);
+
+  useEffect(() => {
+    const fetchPotentialPartners = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*, rank:ranks(name)')
+        .neq('id', currentUser.id);
+
+      if (error) {
+        console.error('Error fetching potential partners:', error);
+        return;
+      }
+
+      const filteredPartners = data.filter((user: any) => {
+        // Show only users of the same or lower rank.
+        return rankHierarchy[user.rank as keyof typeof rankHierarchy] <= rankHierarchy[currentUser.rank as keyof typeof rankHierarchy];
+      });
+      setPotentialPartners(filteredPartners as User[]);
+    };
+
+    fetchPotentialPartners();
+  }, [currentUser]);
   
   return (
     <Card ref={refProp}>
