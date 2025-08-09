@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/use-supabase-auth';
 import { useToast } from '@/hooks/use-toast';
 import { validateInviteCodeAction } from '@/app/actions';
 import { Loader2 } from 'lucide-react';
+import { ClientOnly } from '@/components/ui/client-only';
 import { type Rank } from '@/lib/types';
 
 const formSchema = z.object({

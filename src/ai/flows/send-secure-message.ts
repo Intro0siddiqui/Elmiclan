@@ -12,6 +12,7 @@ import { z } from 'genkit';
 import { getMatrixClient } from '../matrix-client';
 import { env } from '@/env.mjs';
 import { FlowResult } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 
 const SendSecureMessageInputSchema = z.object({
   toUserId: z.string().optional().describe('The Matrix ID of the recipient for a direct message. If omitted, sends to the main clan chat.'),
@@ -35,6 +36,60 @@ export async function sendSecureMessage(input: SendSecureMessageInput): Promise<
 }
 
 const RANK_RESTRICTED_PREFIX = '[RANK_RESTRICTED]';
+
+// New registration flow
+export const registerMatrixUser = ai.defineFlow({
+  name: 'registerMatrixUser',
+  inputSchema: z.object({
+    userId: z.string().describe('Supabase user ID'),
+    username: z.string().describe('Desired Matrix username'),
+    password: z.string().describe('Matrix account password'),
+  }),
+  outputSchema: z.object({
+    matrixUserId: z.string(),
+  }),
+}, async ({ userId, username, password }) => {
+  try {
+    const botClient = await getMatrixClient();
+    
+    // Generate unique device ID
+    const deviceId = `ELMI_${Date.now()}`;
+
+    // Attempt registration
+    const result = await botClient.registerRequest({
+      username,
+      password,
+      device_id: deviceId,
+      auth: { type: 'm.login.dummy' } // Fallback for simple auth
+    });
+
+    // Handle interactive auth if needed
+    if (result.flows) {
+      // Solve CAPTCHA/TOS challenges here
+      // For now we'll throw an error if interactive auth is required
+      throw new Error('Interactive auth required - not implemented');
+    }
+
+    // Store credentials
+    const { error } = await supabase
+      .from('matrix_tokens')
+      .upsert({
+        user_id: userId,
+        matrix_user_id: result.user_id,
+        access_token: result.access_token,
+        device_id: deviceId,
+      });
+
+    if (error) {
+      throw new Error('Failed to store Matrix credentials');
+    }
+
+    return { matrixUserId: result.user_id };
+  } catch (e: any) {
+    console.error('Matrix registration failed:', e);
+    throw new Error(e.message || 'Matrix registration failed');
+  }
+});
 
 const sendSecureMessageFlow = ai.defineFlow(
   {
