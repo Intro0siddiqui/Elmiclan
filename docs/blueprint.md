@@ -14,6 +14,10 @@ This document outlines the core features, user experience goals, and visual iden
 
 - **AI-Powered Rank Advisor**: A key feature where users can receive personalized guidance on how to advance to the next rank. This is powered by the `rank-advisor.ts` Genkit flow, which leverages a Google AI model to generate tailored recommendations based on the user's current status.
 
+- **Missions System**: A feature where users can complete tasks to earn rewards and advance in rank. The implementation is currently spread across two files: `use-missions.ts` and `useMissions.ts`.
+
+- **Project Roadmap**: The project's development roadmap is maintained in `docs/ROADMAP.md`.
+
 ## 2. Style Guidelines & Visual Identity
 
 - **Primary Color**: Deep purple (`#673AB7`) - Used for primary actions and to evoke a sense of exclusivity and importance.

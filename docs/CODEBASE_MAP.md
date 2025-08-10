@@ -36,6 +36,8 @@ This document serves as a high-level guide to the ElmiClan Portal codebase. It m
     - **`PrivateChatInterface.tsx`**: The main component that orchestrates the private direct messaging view.
 - **`src/components/providers.tsx`**: A component for wrapping the application in context providers (e.g., for TanStack Query, theme management).
 - **`src/components/AnimatedPage.tsx`**: A wrapper component that uses `framer-motion` to apply consistent animations to pages.
+- **`src/components/icons.tsx`**: A component that exports a collection of icons used throughout the application.
+- **`src/components/ui/sidebar.tsx`**: A reusable sidebar component.
 
 ## 4. State Management & Hooks
 
